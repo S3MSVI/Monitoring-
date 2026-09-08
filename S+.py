@@ -4,9 +4,9 @@
 SOLAR POWER MONITORING SYSTEM
 Advanced Real-Time Solar Photovoltaic Data Acquisition & Analytics Dashboard
 =========================================================================================
-Style: Professional Industrial / Scientific / Dense & Elegant
+Style: Professional Industrial / Scientific / High Information Density
 Standardized Units: Power in W, Energy in kWh everywhere in UI and Exports
-Icon System: Coherent Lucide-style SVG (Dependency-Free, Stroke-Based)
+Icon System: Unified Lucide-Style SVG (Dependency-Free, Stroke-Based)
 =========================================================================================
 """
 
@@ -26,7 +26,6 @@ import os
 # =========================================================================================
 st.set_page_config(
     page_title="Solar Power Monitoring Dashboard",
-    page_icon="☀️",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -34,7 +33,7 @@ st.set_page_config(
 # =========================================================================================
 # 2. PROFESSIONAL UNIFIED ICON SYSTEM (LUCIDE SVG SPECIFICATION)
 # =========================================================================================
-def get_icon(name: str, size: int = 15, color: str = "currentColor", stroke_width: float = 1.8) -> str:
+def get_icon(name: str, size: int = 14, color: str = "currentColor", stroke_width: float = 1.8) -> str:
     """Returns a clean, resolution-independent inline SVG icon in refined Lucide style."""
     paths = {
         'sun': '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',
@@ -71,6 +70,8 @@ def energy_mwh_to_kwh(val_mwh: float) -> float:
 
 def format_energy_kwh(val_kwh: float) -> str:
     """Adaptive precision formatter for kWh values to avoid hiding useful resolution."""
+    if val_kwh is None or math.isnan(val_kwh):
+        return "N/A"
     if val_kwh <= 0:
         return "0.0000"
     elif val_kwh >= 100:
@@ -86,6 +87,8 @@ def format_energy_kwh(val_kwh: float) -> str:
 
 def format_power_w(val_w: float) -> str:
     """Adaptive precision formatter for power in Watts."""
+    if val_w is None or math.isnan(val_w):
+        return "N/A"
     if val_w <= 0:
         return "0.00"
     elif val_w >= 100:
@@ -128,7 +131,7 @@ def get_tehran_weather():
 
 tehran_temp, tehran_hum = get_tehran_weather()
 
-# Dynamic Solar Position & Daylight Atmosphere (Visual Secondary Overlay)
+# Dynamic Solar Position & Daylight Atmosphere (Intentional Background Layer)
 hour = now_tehran.hour
 minute = now_tehran.minute
 time_in_hours = hour + minute / 60.0
@@ -146,7 +149,7 @@ if sunrise <= time_in_hours <= sunset:
         opacity = 0.85 - (progress * 2.0)
         sky_overlay = f"linear-gradient(rgba(15, 23, 42, {opacity*0.4}), rgba(254, 215, 170, {opacity*0.6}))"
         sun_color = "rgba(251, 146, 60, 0.85)"
-        solar_phase = "Morning"
+        solar_phase = "Sunrise"
         solar_phase_icon = get_icon('sun', size=13, color='#fb923c')
     elif progress > 0.80:
         p_sunset = progress - 0.80
@@ -184,7 +187,7 @@ else:
     sun_orb_html = ""
 
 # =========================================================================================
-# 5. REFINED FORMAL CSS STYLING & COMPACT INFORMATION DENSITY
+# 5. REFINED FORMAL CSS STYLING & HIGH INFORMATION DENSITY
 # =========================================================================================
 st.markdown(f"""
 <style>
@@ -301,22 +304,22 @@ st.markdown(f"""
     .header-pill.status-red {{ background: rgba(254, 242, 242, 0.9); border-color: rgba(254, 202, 202, 0.9); color: #b91c1c; }}
     .header-pill.status-amber {{ background: rgba(254, 243, 199, 0.9); border-color: rgba(253, 230, 138, 0.9); color: #b45309; }}
 
-    /* Cards */
+    /* Standard Glass Card Component */
     .glass-card {{
-        background: rgba(255, 255, 255, 0.94);
+        background: rgba(255, 255, 255, 0.95);
         backdrop-filter: blur(14px);
         border-radius: 14px;
-        padding: 14px 16px;
+        padding: 13px 15px;
         border: 1px solid rgba(255, 255, 255, 0.9);
         box-shadow: 0 4px 14px rgba(15, 23, 42, 0.03);
-        margin-bottom: 12px;
+        margin-bottom: 10px;
     }}
     .card-heading {{
         font-size: 11.5px;
         font-weight: 600;
         color: #1e293b;
-        margin-bottom: 10px;
-        padding-bottom: 6px;
+        margin-bottom: 9px;
+        padding-bottom: 5px;
         border-bottom: 1px solid #f1f5f9;
         display: flex;
         justify-content: space-between;
@@ -330,15 +333,15 @@ st.markdown(f"""
         gap: 6px;
     }}
 
-    /* Hero Power Card */
+    /* Hero Power Card (Largest Visual KPI) */
     .hero-power-card {{
         background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(254, 243, 199, 0.40));
         border: 1.5px solid rgba(245, 158, 11, 0.30);
         border-radius: 14px;
-        padding: 16px 15px;
+        padding: 15px 14px;
         text-align: center;
         box-shadow: 0 6px 18px rgba(245, 158, 11, 0.06);
-        margin-bottom: 12px;
+        margin-bottom: 10px;
     }}
     .hero-title {{
         font-size: 11px;
@@ -354,7 +357,7 @@ st.markdown(f"""
         font-size: 38px;
         font-weight: 700;
         color: #0f172a;
-        margin: 4px 0;
+        margin: 3px 0;
         letter-spacing: -0.5px;
         line-height: 1.1;
     }}
@@ -368,29 +371,29 @@ st.markdown(f"""
         font-size: 11px;
         color: #64748b;
         font-weight: 400;
-        margin-top: 2px;
+        margin-top: 1px;
     }}
 
     /* KPI Grid */
-    .kpi-grid {{ display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px; }}
+    .kpi-grid {{ display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }}
     .kpi-item {{
         background: rgba(248, 250, 252, 0.85);
         border: 1px solid rgba(226, 232, 240, 0.85);
         border-radius: 10px;
-        padding: 9px 11px;
+        padding: 8px 10px;
         text-align: left;
     }}
     .kpi-item-title {{
         font-size: 11px;
         font-weight: 500;
         color: #64748b;
-        margin-bottom: 3px;
+        margin-bottom: 2px;
         display: flex;
         align-items: center;
         gap: 5px;
     }}
     .kpi-item-val {{
-        font-size: 20px;
+        font-size: 19px;
         font-weight: 600;
         color: #0f172a;
         line-height: 1.2;
@@ -402,12 +405,174 @@ st.markdown(f"""
         margin-left: 2px;
     }}
 
+    /* UNIFIED CHART CONTAINERS (Fixing Overlap & Night Layering) */
+    div[data-testid="stVerticalBlockBorderWrapper"] {{
+        background: rgba(255, 255, 255, 0.95) !important;
+        backdrop-filter: blur(14px) !important;
+        border-radius: 12px !important;
+        border: 1px solid rgba(255, 255, 255, 0.9) !important;
+        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.035) !important;
+        padding: 8px 10px 10px 10px !important;
+        margin-bottom: 8px !important;
+    }}
+    div[data-testid="stVerticalBlockBorderWrapper"] > div {{
+        gap: 0.2rem !important;
+    }}
+    div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stVegaLiteChart"],
+    div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stArrowVegaLiteChart"] {{
+        background-color: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }}
+    div[data-testid="stVegaLiteChart"] summary, div[data-testid="stArrowVegaLiteChart"] summary {{
+        display: none !important;
+    }}
+
+    .chart-card-header {{
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-bottom: 4px;
+        margin-bottom: 3px;
+        border-bottom: 1px solid rgba(226, 232, 240, 0.75);
+    }}
+    .chart-header-title {{
+        font-size: 12px;
+        font-weight: 600;
+        color: #1e293b;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        letter-spacing: 0.1px;
+    }}
+
+    /* Compact Chart Empty State (Guarantees Consistent Dimensions & Zero Collapse) */
+    .chart-empty-state {{
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: rgba(248, 250, 252, 0.65);
+        border: 1px dashed rgba(203, 213, 225, 0.8);
+        border-radius: 8px;
+        text-align: center;
+        margin-top: 2px;
+    }}
+    .chart-empty-state.main-empty {{
+        height: 200px;
+    }}
+    .chart-empty-state.sec-empty {{
+        height: 125px;
+    }}
+    .empty-state-title {{
+        font-size: 11.5px;
+        font-weight: 600;
+        color: #475569;
+        margin-top: 5px;
+    }}
+    .empty-state-sub {{
+        font-size: 10px;
+        color: #94a3b8;
+        margin-top: 1px;
+    }}
+
+    /* Timeframe Selector Capsule */
+    div[data-testid="stRadio"] {{
+        display: flex !important;
+        justify-content: center !important;
+        margin-bottom: 6px;
+    }}
+    div[role="radiogroup"] {{
+        display: inline-flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        background: rgba(255, 255, 255, 0.95) !important;
+        padding: 3px 8px !important;
+        border-radius: 40px !important;
+        border: 1px solid rgba(226, 232, 240, 0.9) !important;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03) !important;
+        gap: 2px;
+    }}
+    div[role="radiogroup"] label {{
+        padding: 2px 7px !important;
+        border-radius: 14px !important;
+        margin: 0 !important;
+    }}
+    div[role="radiogroup"] label p {{
+        font-size: 11px !important;
+        font-weight: 500 !important;
+        color: #334155 !important;
+    }}
+
+    /* Window Span Caption */
+    .timeframe-caption-box {{
+        display: flex;
+        justify-content: center;
+        margin-bottom: 6px;
+    }}
+    .timeframe-caption {{
+        font-size: 11px;
+        color: #475569;
+        background: rgba(255, 255, 255, 0.88);
+        padding: 2px 10px;
+        border-radius: 12px;
+        border: 1px solid rgba(226, 232, 240, 0.85);
+        box-shadow: 0 1px 4px rgba(15, 23, 42, 0.02);
+    }}
+
+    /* PERFORMANCE SNAPSHOT 5-COLUMN COMPACT GRID */
+    .snapshot-grid {{
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 8px;
+    }}
+    @media (max-width: 1024px) {{
+        .snapshot-grid {{
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }}
+    }}
+    @media (max-width: 640px) {{
+        .snapshot-grid {{
+            grid-template-columns: repeat(1, minmax(0, 1fr));
+        }}
+    }}
+    .snapshot-card {{
+        background: rgba(248, 250, 252, 0.85);
+        border: 1px solid rgba(226, 232, 240, 0.9);
+        border-radius: 10px;
+        padding: 9px 12px;
+        text-align: left;
+    }}
+    .snapshot-label {{
+        font-size: 11px;
+        font-weight: 500;
+        color: #64748b;
+        margin-bottom: 3px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }}
+    .snapshot-val {{
+        font-size: 17px;
+        font-weight: 700;
+        color: #0f172a;
+        line-height: 1.2;
+    }}
+    .snapshot-unit {{
+        font-size: 11px;
+        font-weight: 500;
+        color: #d97706;
+        margin-left: 2px;
+    }}
+
     /* Status Items */
     .status-row {{
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 6px 0;
+        padding: 5.5px 0;
         border-bottom: 1px solid #f1f5f9;
         font-size: 11.5px;
     }}
@@ -432,7 +597,7 @@ st.markdown(f"""
         border-radius: 6px;
         background: linear-gradient(90deg, #93c5fd 0%, #fde047 50%, #f97316 100%);
         position: relative;
-        margin: 12px 0 6px 0;
+        margin: 10px 0 6px 0;
     }}
     .scale-pointer {{
         position: absolute;
@@ -456,7 +621,7 @@ st.markdown(f"""
 
     /* Event Log List */
     .event-log-container {{
-        max-height: 150px;
+        max-height: 140px;
         overflow-y: auto;
         padding-right: 4px;
     }}
@@ -476,95 +641,22 @@ st.markdown(f"""
     .event-entry.warning {{ border-left-color: #f59e0b; background: rgba(254, 243, 199, 0.35); }}
     .event-entry.error {{ border-left-color: #ef4444; background: rgba(254, 242, 242, 0.35); }}
 
-    /* Clean Timeframe Radio */
-    div[data-testid="stRadio"] {{
-        display: flex !important;
-        justify-content: center !important;
-        margin-bottom: 8px;
-    }}
-    div[role="radiogroup"] {{
-        display: inline-flex !important;
-        justify-content: center !important;
-        align-items: center !important;
-        background: rgba(255, 255, 255, 0.95) !important;
-        padding: 3px 8px !important;
-        border-radius: 40px !important;
-        border: 1px solid rgba(226, 232, 240, 0.9) !important;
-        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03) !important;
-        gap: 2px;
-    }}
-    div[role="radiogroup"] label {{
-        padding: 2px 7px !important;
-        border-radius: 14px !important;
-        margin: 0 !important;
-    }}
-    div[role="radiogroup"] label p {{
-        font-size: 11px !important;
-        font-weight: 500 !important;
-        color: #334155 !important;
-    }}
-
-    /* Charts */
-    div[data-testid="stVegaLiteChart"], div[data-testid="stArrowVegaLiteChart"] {{
-        background-color: #ffffff !important;
-        border-radius: 10px !important;
-        padding: 6px !important;
-        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.025) !important;
-        border: 1px solid rgba(226, 232, 240, 0.85) !important;
-    }}
-    div[data-testid="stVegaLiteChart"] summary, div[data-testid="stArrowVegaLiteChart"] summary {{ display: none !important; }}
-
-    h4 {{
-        color: #0f172a !important;
-        font-size: 13.5px !important;
-        font-weight: 600 !important;
-        margin-top: 6px !important;
-        margin-bottom: 3px !important;
-        letter-spacing: 0.2px;
-    }}
-    h5 {{
-        color: #334155 !important;
-        font-size: 11.5px !important;
-        font-weight: 600 !important;
-        margin-top: 4px !important;
-        margin-bottom: 2px !important;
-    }}
-
-    /* Production Summary Section */
-    .summary-grid {{
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-        gap: 10px;
-    }}
-    .summary-card-item {{
-        background: rgba(248, 250, 252, 0.85);
-        border: 1px solid rgba(226, 232, 240, 0.9);
-        border-radius: 10px;
-        padding: 9px 12px;
-        text-align: left;
-    }}
-    .summary-item-label {{
-        font-size: 11px;
-        font-weight: 500;
-        color: #64748b;
-        margin-bottom: 2px;
-        display: flex;
+    /* Table Typography & Header Pill */
+    .table-header-pill {{
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(14px);
+        border-radius: 8px;
+        padding: 5px 12px;
+        border: 1px solid rgba(255, 255, 255, 0.9);
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+        display: inline-flex;
         align-items: center;
-        gap: 5px;
-    }}
-    .summary-item-val {{
-        font-size: 17px;
-        font-weight: 700;
+        gap: 6px;
+        font-size: 13px;
+        font-weight: 600;
         color: #0f172a;
+        margin-bottom: 6px;
     }}
-    .summary-item-unit {{
-        font-size: 11px;
-        font-weight: 500;
-        color: #d97706;
-        margin-left: 2px;
-    }}
-
-    /* Table Typography */
     div[data-testid="stDataFrame"] * {{
         font-size: 11px !important;
     }}
@@ -600,253 +692,222 @@ if sun_orb_html:
     st.markdown(sun_orb_html, unsafe_allow_html=True)
 
 # =========================================================================================
-# 6. BACKEND STORAGE & DATA PERSISTENCE (SOLAR DATA REPOSITORY)
+# 6. SESSION STATE & LOCAL CSV LOG PERSISTENCE (STANDARDIZED W & kWh)
 # =========================================================================================
-PERSISTENCE_FILE = "solar_backup.csv"
+CSV_BACKUP_FILE = 'solar_backup.csv'
 
-@st.cache_resource
-def get_solar_data():
-    store = {
+def save_point_to_csv(record_dict):
+    """Persists real-time sensor measurements to local CSV."""
+    df_new = pd.DataFrame([record_dict])
+    if not os.path.exists(CSV_BACKUP_FILE):
+        df_new.to_csv(CSV_BACKUP_FILE, index=False)
+    else:
+        df_new.to_csv(CSV_BACKUP_FILE, mode='a', header=False, index=False)
+
+def load_data_from_csv():
+    """Restores historical telemetry with backward-compatible unit conversions."""
+    if os.path.exists(CSV_BACKUP_FILE):
+        try:
+            df = pd.read_csv(CSV_BACKUP_FILE)
+            if not df.empty:
+                # Standardize legacy power column
+                if 'power_W' not in df.columns:
+                    if 'power_mW' in df.columns:
+                        df['power_W'] = df['power_mW'] / 1000.0
+                    else:
+                        df['power_W'] = (df['voltage_V'] * df['current_mA']) / 1000.0
+                
+                # Standardize legacy energy column
+                if 'energy_kWh' not in df.columns:
+                    if 'energy_mWh' in df.columns:
+                        df['energy_kWh'] = df['energy_mWh'] / 1_000_000.0
+                    elif 'energy_Wh' in df.columns:
+                        df['energy_kWh'] = df['energy_Wh'] / 1000.0
+                    else:
+                        df['energy_kWh'] = 0.0
+
+                if 'energy_mWh' not in df.columns:
+                    df['energy_mWh'] = df['energy_kWh'] * 1_000_000.0
+
+                return df.tail(1500).to_dict('records')
+        except Exception:
+            pass
+    return []
+
+if 'solar_data' not in st.session_state:
+    st.session_state.solar_data = {
         'voltage': 0.0,
         'current': 0.0,
-        'power': 0.0,  # in mW
-        'temp': 0.0,
+        'power': 0.0,           # Internal working unit: mW
+        'watts': 0.0,           # Irradiance in W/m²
         'lux': 0.0,
-        'watts': 0.0,
-        'total_energy_mWh': 0.0,
-        'last_power_time': 0.0,
-        'last_msg_time': 0.0,
+        'temp': 0.0,
+        'total_energy_mWh': 0.0, # Internal accumulation: mWh
+        'last_energy_calc_time': None,
+        'last_update_time': None,
         'mqtt_connected': False,
+        'logging_active': True,
         'reconnect_count': 0,
         'msg_count': 0,
-        'last_topic': '-',
-        'last_payload': '-',
-        'logging_active': True,
         'events': [],
-        'log_records': []
+        'log_records': load_data_from_csv()
     }
     
-    # Startup restoration from solar_backup.csv
-    if os.path.exists(PERSISTENCE_FILE):
-        try:
-            df = pd.read_csv(PERSISTENCE_FILE)
-            if not df.empty:
-                records = df.tail(20000).to_dict('records')
-                store['log_records'] = records
-                last_rec = records[-1]
-                
-                # Restore last sensor values
-                store['voltage'] = float(last_rec.get('voltage_V', last_rec.get('Voltage (V)', 0.0)))
-                store['current'] = float(last_rec.get('current_mA', last_rec.get('Current (mA)', 0.0)))
-                
-                # Restore power: support power_W or legacy power_mW
-                if 'power_W' in last_rec:
-                    store['power'] = float(last_rec['power_W']) * 1000.0
-                else:
-                    store['power'] = float(last_rec.get('power_mW', last_rec.get('Power (mW)', 0.0)))
-                    
-                store['temp'] = float(last_rec.get('temperature_C', last_rec.get('Temp (°C)', 0.0)))
-                store['lux'] = float(last_rec.get('illuminance_lux', last_rec.get('Lux', 0.0)))
-                store['watts'] = float(last_rec.get('irradiance_W_m2', last_rec.get('Irradiance (W/m²)', 0.0)))
-                
-                # Restore energy: support energy_kWh, energy_Wh, or energy_mWh
-                if 'energy_kWh' in last_rec:
-                    store['total_energy_mWh'] = float(last_rec['energy_kWh']) * 1_000_000.0
-                elif 'energy_mWh' in last_rec:
-                    store['total_energy_mWh'] = float(last_rec['energy_mWh'])
-                elif 'energy_Wh' in last_rec:
-                    store['total_energy_mWh'] = float(last_rec['energy_Wh']) * 1000.0
-                elif 'Energy (mWh)' in last_rec:
-                    store['total_energy_mWh'] = float(last_rec['Energy (mWh)'])
-                    
-                store['events'].append({
-                    'time': datetime.now(tehran_tz).strftime("%H:%M:%S"),
-                    'text': f"Restored {len(records)} records from {PERSISTENCE_FILE}",
-                    'level': 'info'
-                })
-        except Exception as e:
-            store['events'].append({
-                'time': datetime.now(tehran_tz).strftime("%H:%M:%S"),
-                'text': f"Notice: Could not parse previous archive ({e})",
-                'level': 'warning'
-            })
-            
-    return store
+    # Initialize accumulated energy from historical records if present
+    if st.session_state.solar_data['log_records']:
+        last_rec = st.session_state.solar_data['log_records'][-1]
+        if 'energy_mWh' in last_rec:
+            st.session_state.solar_data['total_energy_mWh'] = float(last_rec['energy_mWh'])
+        elif 'energy_kWh' in last_rec:
+            st.session_state.solar_data['total_energy_mWh'] = float(last_rec['energy_kWh']) * 1_000_000.0
 
-solar_data = get_solar_data()
+solar_data = st.session_state.solar_data
 
-def add_event(msg_text, level="info"):
-    now_str = datetime.now(tehran_tz).strftime("%H:%M:%S")
-    solar_data['events'].append({'time': now_str, 'text': msg_text, 'level': level})
-    if len(solar_data['events']) > 25:
+def add_event(level: str, text: str):
+    t_now = datetime.now(tehran_tz).strftime("%H:%M:%S")
+    solar_data['events'].append({'time': t_now, 'level': level, 'text': text})
+    if len(solar_data['events']) > 40:
         solar_data['events'].pop(0)
 
 # =========================================================================================
-# 7. MQTT PROTOCOL & RELIABILITY CLIENT
+# 7. SIDEBAR CONTROLS & ARCHITECTURE SETTINGS
 # =========================================================================================
-def on_connect(client, userdata, flags, rc, properties=None):
-    solar_data['mqtt_connected'] = True
-    solar_data['reconnect_count'] += 1
-    add_event("MQTT Connected to broker successfully", "info")
-    client.subscribe("my_powerplant/#")
+with st.sidebar:
+    st.markdown(f"### {get_icon('sliders', size=16, color='#0f172a')} Dashboard Controls")
+    live_update = st.toggle("Live Telemetry Stream", value=True)
+    
+    st.markdown("---")
+    st.markdown(f"### {get_icon('wifi', size=16, color='#0f172a')} Telemetry Broker")
+    broker_ip = st.text_input("MQTT Server Host", value="broker.hivemq.com")
+    broker_port = st.number_input("Port Number", value=1883, min_value=1, max_value=65535)
+    base_topic = st.text_input("Base Topic Tree", value="my_powerplant")
+    
+    st.markdown("---")
+    if st.button("Reset Telemetry Session", use_container_width=True):
+        solar_data['voltage'] = 0.0
+        solar_data['current'] = 0.0
+        solar_data['power'] = 0.0
+        solar_data['watts'] = 0.0
+        solar_data['lux'] = 0.0
+        solar_data['temp'] = 0.0
+        solar_data['total_energy_mWh'] = 0.0
+        solar_data['last_energy_calc_time'] = None
+        solar_data['last_update_time'] = None
+        solar_data['log_records'] = []
+        solar_data['msg_count'] = 0
+        if os.path.exists(CSV_BACKUP_FILE):
+            try:
+                os.remove(CSV_BACKUP_FILE)
+            except Exception:
+                pass
+        add_event("info", "Session and data logs reset by operator")
+        st.rerun()
 
-def on_disconnect(client, userdata, rc, properties=None):
+# =========================================================================================
+# 8. MQTT INGESTION ENGINE
+# =========================================================================================
+def on_connect(client, userdata, flags, rc):
+    if rc == 0:
+        solar_data['mqtt_connected'] = True
+        client.subscribe(f"{base_topic}/#")
+        add_event("info", "MQTT connection established")
+    else:
+        solar_data['mqtt_connected'] = False
+        add_event("error", f"Broker connection failed (Code {rc})")
+
+def on_disconnect(client, userdata, rc):
     solar_data['mqtt_connected'] = False
-    add_event("MQTT Connection lost (disconnected)", "error")
+    solar_data['reconnect_count'] += 1
+    add_event("warning", "MQTT broker disconnected")
 
 def on_message(client, userdata, msg):
     try:
-        topic = msg.topic.lower()
-        payload_str = msg.payload.decode('utf-8', errors='ignore').replace(chr(0), '').strip()
-        
-        if not payload_str or payload_str.lower() in ['nan', 'null', 'none', 'inf']:
-            return
-            
-        value = float(payload_str)
-        if math.isnan(value) or math.isinf(value):
-            return
-            
-        sensor_name = topic.split('/')[-1]
+        topic = msg.topic
+        payload_str = msg.payload.decode('utf-8')
+        val = float(payload_str)
         t_now = time.time()
-        solar_data['last_msg_time'] = t_now
-        solar_data['msg_count'] += 1
-        solar_data['last_topic'] = topic
-        solar_data['last_payload'] = payload_str
-
-        # Update sensor values
-        if sensor_name == "voltage":
-            solar_data['voltage'] = value
-        elif sensor_name == "current":
-            solar_data['current'] = value
-        elif sensor_name == "power":
-            solar_data['power'] = value
-            # Robust cumulative energy integration (mWh -> Wh -> kWh)
-            if solar_data['last_power_time'] > 0:
-                delta_h = (t_now - solar_data['last_power_time']) / 3600.0
-                if 0 < delta_h < 0.0833 and value > 0:
-                    solar_data['total_energy_mWh'] += value * delta_h
-            solar_data['last_power_time'] = t_now
-        elif sensor_name == "temperature":
-            solar_data['temp'] = value
-            if value > 55.0:
-                add_event(f"High panel temperature alert: {value:.1f} °C", "warning")
-        elif sensor_name == "lux":
-            solar_data['lux'] = value
-        elif sensor_name in ["watts", "irradiance"]:
-            solar_data['watts'] = value
-
-        # Record generation (throttled by 1 second)
-        current_iso = datetime.now(tehran_tz).isoformat()
-        current_hhmmss = datetime.now(tehran_tz).strftime("%H:%M:%S")
         
-        last_rec_time = solar_data['log_records'][-1]['time_display'] if solar_data['log_records'] else ""
-        if last_rec_time != current_hhmmss:
-            power_in_watts = round(solar_data['power'] / 1000.0, 3) if solar_data['power'] > 0 else 0.0
-            energy_in_kwh = round(energy_mwh_to_kwh(solar_data['total_energy_mWh']), 7)
+        solar_data['msg_count'] += 1
+        sub_topic = topic.split('/')[-1]
+
+        if sub_topic == 'voltage':
+            solar_data['voltage'] = val
+        elif sub_topic == 'current':
+            solar_data['current'] = val
+        elif sub_topic == 'power':
+            solar_data['power'] = val # stored in mW
+        elif sub_topic == 'watts':
+            solar_data['watts'] = val # irradiance in W/m²
+        elif sub_topic == 'lux':
+            solar_data['lux'] = val
+        elif sub_topic == 'temp':
+            solar_data['temp'] = val
             
-            record = {
-                'timestamp': current_iso,
-                'time_display': current_hhmmss,
-                'voltage_V': round(solar_data['voltage'], 2),
-                'current_mA': round(solar_data['current'], 2),
-                'power_W': power_in_watts,
-                'energy_kWh': energy_in_kwh,
-                'temperature_C': round(solar_data['temp'], 2),
-                'illuminance_lux': round(solar_data['lux'], 1),
-                'irradiance_W_m2': round(solar_data['watts'], 2)
-            }
+        # Fallback electrical power computation if sensor payload omitted
+        if sub_topic in ['voltage', 'current'] and solar_data['power'] <= 0.0:
+            solar_data['power'] = solar_data['voltage'] * solar_data['current']
+
+        # Accurate Riemann-sum Numerical Energy Integration
+        if solar_data['last_energy_calc_time'] is not None:
+            dt_hours = (t_now - solar_data['last_energy_calc_time']) / 3600.0
+            if 0 < dt_hours < 0.05: # Max 3-minute gap
+                solar_data['total_energy_mWh'] += solar_data['power'] * dt_hours
+        solar_data['last_energy_calc_time'] = t_now
+        solar_data['last_update_time'] = t_now
+
+        # Periodic snapshot logging (1 Hz rate-limited)
+        dt_tehran = datetime.now(tehran_tz)
+        cur_power_w = solar_data['power'] / 1000.0
+        cur_energy_kwh = energy_mwh_to_kwh(solar_data['total_energy_mWh'])
+        
+        record = {
+            'timestamp': dt_tehran.isoformat(),
+            'time_display': dt_tehran.strftime("%H:%M:%S"),
+            'voltage_V': round(solar_data['voltage'], 2),
+            'current_mA': round(solar_data['current'], 1),
+            'power_W': round(cur_power_w, 4),
+            'energy_kWh': cur_energy_kwh,
+            'energy_mWh': round(solar_data['total_energy_mWh'], 2),
+            'temperature_C': round(solar_data['temp'], 1),
+            'illuminance_lux': round(solar_data['lux'], 1),
+            'irradiance_W_m2': round(solar_data['watts'], 1)
+        }
+        
+        if not solar_data['log_records'] or (t_now - pd.to_datetime(solar_data['log_records'][-1]['timestamp']).timestamp() >= 1.0):
             solar_data['log_records'].append(record)
-
-            # Auto-backup append to disk
-            try:
-                df_row = pd.DataFrame([record])
-                df_row.to_csv(PERSISTENCE_FILE, mode='a', header=not os.path.exists(PERSISTENCE_FILE), index=False)
-                solar_data['logging_active'] = True
-            except Exception:
-                solar_data['logging_active'] = False
-
-            # Memory ring-buffer bounding
-            if len(solar_data['log_records']) > 20000:
+            if len(solar_data['log_records']) > 1500:
                 solar_data['log_records'].pop(0)
+            if solar_data['logging_active']:
+                save_point_to_csv(record)
 
     except Exception:
         pass
 
 @st.cache_resource
-def init_mqtt():
-    try:
-        client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1)
-    except Exception:
-        try:
-            client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
-        except Exception:
-            client = mqtt.Client()
-            
+def get_mqtt_client():
+    client = mqtt.Client()
     client.on_connect = on_connect
     client.on_disconnect = on_disconnect
     client.on_message = on_message
-
-    try:
-        client.connect("broker.emqx.io", 1883, keepalive=60)
-    except Exception:
-        try:
-            client.connect("broker.hivemq.com", 1883, keepalive=60)
-        except Exception as e:
-            add_event(f"MQTT init connect error: {e}", "error")
-
-    client.loop_start()
     return client
 
-try:
-    mqtt_client = init_mqtt()
-except Exception as e:
-    st.error(f"MQTT Service Startup Error: {e}")
+mqtt_client = get_mqtt_client()
+if not solar_data['mqtt_connected']:
+    try:
+        mqtt_client.connect_async(broker_ip, int(broker_port), 60)
+        mqtt_client.loop_start()
+    except Exception:
+        pass
 
 # =========================================================================================
-# 8. SIDEBAR CONTROLS & DATA MANAGEMENT
+# 9. TELEMETRY FRESHNESS & DIAGNOSTICS
 # =========================================================================================
-st.sidebar.markdown(f"### {get_icon('sliders', size=14, color='#64748b')} Controls", unsafe_allow_html=True)
-live_update = st.sidebar.checkbox("Live Update", value=True, help="Toggle periodic page refresh for live data streaming.")
-
-st.sidebar.markdown("---")
-st.sidebar.markdown(f"### {get_icon('database', size=14, color='#64748b')} Data Management", unsafe_allow_html=True)
-confirm_reset = st.sidebar.checkbox("Confirm data reset", value=False, help="Must check before clearing data.")
-if st.sidebar.button("Clear All Data & Restart", disabled=not confirm_reset):
-    if os.path.exists(PERSISTENCE_FILE):
-        try: os.remove(PERSISTENCE_FILE)
-        except Exception: pass
-    solar_data['log_records'] = []
-    solar_data['total_energy_mWh'] = 0.0
-    solar_data['last_power_time'] = 0.0
-    solar_data['voltage'] = 0.0
-    solar_data['current'] = 0.0
-    solar_data['power'] = 0.0
-    solar_data['temp'] = 0.0
-    solar_data['lux'] = 0.0
-    solar_data['watts'] = 0.0
-    add_event("All persistent and session data cleared by operator", "warning")
-    st.rerun()
-
-st.sidebar.markdown("---")
-st.sidebar.info(
-    "**Solar Power Monitoring System**\n\n"
-    "Photovoltaic Data Acquisition\n\n"
-    "• Standardized Units: W & kWh\n"
-    "• Protocol: MQTT on Wi-Fi\n"
-    "• Broker: broker.emqx.io\n"
-    "• Timezone: Asia/Tehran"
-)
-
-# =========================================================================================
-# 9. FRESHNESS & SYSTEM STATUS COMPUTATION
-# =========================================================================================
-now_epoch = time.time()
-if solar_data['last_msg_time'] > 0:
-    sec_since_update = now_epoch - solar_data['last_msg_time']
+if solar_data['last_update_time']:
+    sec_since_update = time.time() - solar_data['last_update_time']
     if sec_since_update < 60:
-        freshness_label = f"{sec_since_update:.1f}s ago"
+        freshness_label = f"{int(sec_since_update)}s ago"
     elif sec_since_update < 3600:
-        freshness_label = f"{int(sec_since_update // 60)}m {int(sec_since_update % 60)}s ago"
+        freshness_label = f"{int(sec_since_update / 60)}m ago"
     else:
         freshness_label = f"{sec_since_update / 3600:.1f}h ago"
         
@@ -893,10 +954,10 @@ st.markdown(f"""
 col_left, col_center, col_right = st.columns([1.1, 2.3, 1.2], gap="medium")
 
 # -----------------------------------------------------------------------------------------
-# ZONE 1 (LEFT): MAIN KPI & SYSTEM METRICS
+# ZONE 1 (LEFT): MAIN HERO KPI & ELECTRICAL / AMBIENT KPIS
 # -----------------------------------------------------------------------------------------
 with col_left:
-    # 1. Hero KPI: Current Power (Standardized to W Everywhere)
+    # 1. Hero KPI: Current Power (Standardized to W Everywhere, Dominant Visual Focus)
     current_power_w = solar_data['power'] / 1000.0 if solar_data['power'] > 0 else 0.0
     power_hero_val = format_power_w(current_power_w)
 
@@ -937,7 +998,7 @@ with col_left:
                 <div class="kpi-item-val">{irr_val:.1f} <span class="kpi-item-unit">W/m²</span></div>
             </div>
             <div class="kpi-item">
-                <div class="kpi-item-title">{get_icon('sun-dim', size=13, color='#eab308')} Illuminance</div>
+                <div class="kpi-item-title">{get_icon('sun-dim', size=13, color='#ca8a04')} Illuminance</div>
                 <div class="kpi-item-val">{lux_val:.1f} <span class="kpi-item-unit">Lux</span></div>
             </div>
             <div class="kpi-item">
@@ -970,7 +1031,7 @@ with col_center:
         df_records = pd.DataFrame(solar_data['log_records'])
         df_records['dt'] = pd.to_datetime(df_records['timestamp'], errors='coerce')
         
-        # Ensure energy_kWh column is present and clean
+        # Ensure standardized energy and power columns exist
         if 'energy_kWh' not in df_records.columns:
             if 'energy_mWh' in df_records.columns:
                 df_records['energy_kWh'] = df_records['energy_mWh'] / 1_000_000.0
@@ -978,6 +1039,12 @@ with col_center:
                 df_records['energy_kWh'] = df_records['energy_Wh'] / 1000.0
             else:
                 df_records['energy_kWh'] = 0.0
+
+        if 'power_W' not in df_records.columns:
+            if 'power_mW' in df_records.columns:
+                df_records['power_W'] = df_records['power_mW'] / 1000.0
+            else:
+                df_records['power_W'] = (df_records['voltage_V'] * df_records['current_mA']) / 1000.0
 
         now_dt = datetime.now(tehran_tz)
         if timeframe == "1 Min":
@@ -1007,49 +1074,150 @@ with col_center:
                 span_str = f"{int(span_s // 60)}m {int(span_s % 60)}s"
             else:
                 span_str = f"{int(span_s)}s"
-            st.caption(f"Available window: **{span_str}** ({len(df_chart)} records)")
+            st.markdown(f"""
+            <div class="timeframe-caption-box">
+                <span class="timeframe-caption">Active telemetry window: <b>{span_str}</b> ({len(df_chart)} records)</span>
+            </div>
+            """, unsafe_allow_html=True)
     else:
         df_chart = pd.DataFrame()
 
-    # 2. Main Hero Chart: POWER & IRRADIANCE (Power in W)
-    st.markdown("#### Power (W) & Irradiance (W/m²)")
-    if not df_chart.empty and len(df_chart) > 0:
-        main_plot_df = pd.DataFrame({
-            'Time': df_chart['time_display'],
-            'Power (W)': df_chart['power_W'],
-            'Irradiance (W/m²)': df_chart['irradiance_W_m2']
-        }).set_index('Time')
-        st.line_chart(main_plot_df, color=["#ea580c", "#f59e0b"], height=210)
-    else:
-        st.info("Collecting real-time sensor telemetry...")
+    # 2. Main Hero Chart: POWER (W) & IRRADIANCE (W/m²) inside Integrated Card Container
+    with st.container(border=True):
+        st.markdown(f"""
+        <div class="chart-card-header">
+            <span class="chart-header-title">{get_icon('sun', size=14, color='#ea580c')} Power (W) & Irradiance (W/m²)</span>
+        </div>
+        """, unsafe_allow_html=True)
+        if not df_chart.empty and len(df_chart) > 0:
+            main_plot_df = pd.DataFrame({
+                'Time': df_chart['time_display'],
+                'Power (W)': df_chart['power_W'],
+                'Irradiance (W/m²)': df_chart['irradiance_W_m2']
+            }).set_index('Time')
+            st.line_chart(main_plot_df, color=["#ea580c", "#f59e0b"], height=200)
+        else:
+            st.markdown(f"""
+            <div class="chart-empty-state main-empty">
+                {get_icon('activity', size=22, color='#94a3b8')}
+                <div class="empty-state-title">Collecting real-time sensor telemetry...</div>
+                <div class="empty-state-sub">Waiting for incoming solar telemetry packets</div>
+            </div>
+            """, unsafe_allow_html=True)
 
-    # 3. Secondary Compact Charts Grid (High Information Density)
+    # 3. Secondary Compact Charts Grid (Integrated Card Containers, Zero Overlap)
     col_sc1, col_sc2, col_sc3 = st.columns(3)
 
     with col_sc1:
-        st.markdown("##### Voltage (V)")
-        if not df_chart.empty:
-            st.line_chart(pd.DataFrame({'Time': df_chart['time_display'], 'Voltage (V)': df_chart['voltage_V']}).set_index('Time'), color="#2563eb", height=130)
-        st.markdown("##### Illuminance (Lux)")
-        if not df_chart.empty:
-            st.line_chart(pd.DataFrame({'Time': df_chart['time_display'], 'Lux': df_chart['illuminance_lux']}).set_index('Time'), color="#ca8a04", height=130)
+        # Voltage (V)
+        with st.container(border=True):
+            st.markdown(f"""
+            <div class="chart-card-header">
+                <span class="chart-header-title">{get_icon('gauge', size=13, color='#2563eb')} Voltage (V)</span>
+            </div>
+            """, unsafe_allow_html=True)
+            if not df_chart.empty and len(df_chart) > 0:
+                st.line_chart(pd.DataFrame({'Time': df_chart['time_display'], 'Voltage (V)': df_chart['voltage_V']}).set_index('Time'), color="#2563eb", height=125)
+            else:
+                st.markdown(f"""
+                <div class="chart-empty-state sec-empty">
+                    {get_icon('gauge', size=15, color='#94a3b8')}
+                    <div class="empty-state-title">No telemetry yet</div>
+                    <div class="empty-state-sub">Waiting for incoming data...</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+        # Illuminance (Lux)
+        with st.container(border=True):
+            st.markdown(f"""
+            <div class="chart-card-header">
+                <span class="chart-header-title">{get_icon('sun-dim', size=13, color='#ca8a04')} Illuminance (Lux)</span>
+            </div>
+            """, unsafe_allow_html=True)
+            if not df_chart.empty and len(df_chart) > 0:
+                st.line_chart(pd.DataFrame({'Time': df_chart['time_display'], 'Lux': df_chart['illuminance_lux']}).set_index('Time'), color="#ca8a04", height=125)
+            else:
+                st.markdown(f"""
+                <div class="chart-empty-state sec-empty">
+                    {get_icon('sun-dim', size=15, color='#94a3b8')}
+                    <div class="empty-state-title">No telemetry yet</div>
+                    <div class="empty-state-sub">Waiting for incoming data...</div>
+                </div>
+                """, unsafe_allow_html=True)
 
     with col_sc2:
-        st.markdown("##### Current (mA)")
-        if not df_chart.empty:
-            st.line_chart(pd.DataFrame({'Time': df_chart['time_display'], 'Current (mA)': df_chart['current_mA']}).set_index('Time'), color="#d97706", height=130)
-        st.markdown("##### Irradiance (W/m²)")
-        if not df_chart.empty:
-            st.line_chart(pd.DataFrame({'Time': df_chart['time_display'], 'Irradiance (W/m²)': df_chart['irradiance_W_m2']}).set_index('Time'), color="#ea580c", height=130)
+        # Current (mA)
+        with st.container(border=True):
+            st.markdown(f"""
+            <div class="chart-card-header">
+                <span class="chart-header-title">{get_icon('activity', size=13, color='#d97706')} Current (mA)</span>
+            </div>
+            """, unsafe_allow_html=True)
+            if not df_chart.empty and len(df_chart) > 0:
+                st.line_chart(pd.DataFrame({'Time': df_chart['time_display'], 'Current (mA)': df_chart['current_mA']}).set_index('Time'), color="#d97706", height=125)
+            else:
+                st.markdown(f"""
+                <div class="chart-empty-state sec-empty">
+                    {get_icon('activity', size=15, color='#94a3b8')}
+                    <div class="empty-state-title">No telemetry yet</div>
+                    <div class="empty-state-sub">Waiting for incoming data...</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+        # Irradiance (W/m²)
+        with st.container(border=True):
+            st.markdown(f"""
+            <div class="chart-card-header">
+                <span class="chart-header-title">{get_icon('sun', size=13, color='#ea580c')} Irradiance (W/m²)</span>
+            </div>
+            """, unsafe_allow_html=True)
+            if not df_chart.empty and len(df_chart) > 0:
+                st.line_chart(pd.DataFrame({'Time': df_chart['time_display'], 'Irradiance (W/m²)': df_chart['irradiance_W_m2']}).set_index('Time'), color="#ea580c", height=125)
+            else:
+                st.markdown(f"""
+                <div class="chart-empty-state sec-empty">
+                    {get_icon('sun', size=15, color='#94a3b8')}
+                    <div class="empty-state-title">No telemetry yet</div>
+                    <div class="empty-state-sub">Waiting for incoming data...</div>
+                </div>
+                """, unsafe_allow_html=True)
 
     with col_sc3:
-        st.markdown("##### Temperature (°C)")
-        if not df_chart.empty:
-            st.line_chart(pd.DataFrame({'Time': df_chart['time_display'], 'Temp (°C)': df_chart['temperature_C']}).set_index('Time'), color="#dc2626", height=130)
-        # Energy Chart standardized strictly to kWh
-        st.markdown("##### Energy (kWh)")
-        if not df_chart.empty:
-            st.line_chart(pd.DataFrame({'Time': df_chart['time_display'], 'Energy (kWh)': df_chart['energy_kWh']}).set_index('Time'), color="#10b981", height=130)
+        # Temperature (°C)
+        with st.container(border=True):
+            st.markdown(f"""
+            <div class="chart-card-header">
+                <span class="chart-header-title">{get_icon('thermometer', size=13, color='#dc2626')} Temperature (°C)</span>
+            </div>
+            """, unsafe_allow_html=True)
+            if not df_chart.empty and len(df_chart) > 0:
+                st.line_chart(pd.DataFrame({'Time': df_chart['time_display'], 'Temp (°C)': df_chart['temperature_C']}).set_index('Time'), color="#dc2626", height=125)
+            else:
+                st.markdown(f"""
+                <div class="chart-empty-state sec-empty">
+                    {get_icon('thermometer', size=15, color='#94a3b8')}
+                    <div class="empty-state-title">No telemetry yet</div>
+                    <div class="empty-state-sub">Waiting for incoming data...</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+        # Energy (kWh) strictly standardized
+        with st.container(border=True):
+            st.markdown(f"""
+            <div class="chart-card-header">
+                <span class="chart-header-title">{get_icon('battery-charging', size=13, color='#10b981')} Energy (kWh)</span>
+            </div>
+            """, unsafe_allow_html=True)
+            if not df_chart.empty and len(df_chart) > 0:
+                st.line_chart(pd.DataFrame({'Time': df_chart['time_display'], 'Energy (kWh)': df_chart['energy_kWh']}).set_index('Time'), color="#10b981", height=125)
+            else:
+                st.markdown(f"""
+                <div class="chart-empty-state sec-empty">
+                    {get_icon('battery-charging', size=15, color='#94a3b8')}
+                    <div class="empty-state-title">No telemetry yet</div>
+                    <div class="empty-state-sub">Waiting for incoming data...</div>
+                </div>
+                """, unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------------------
 # ZONE 3 (RIGHT): SYSTEM STATUS, SOLAR CONDITIONS, EVENTS & EXPORT
@@ -1159,57 +1327,59 @@ with col_right:
         )
 
 # =========================================================================================
-# 12. COMPACT ANALYTICAL "PRODUCTION SUMMARY" SECTION (REAL METRICS ONLY)
+# 12. COMPACT ANALYTICAL "PERFORMANCE SNAPSHOT" SECTION (TIMEFRAME-AWARE REAL METRICS)
 # =========================================================================================
+# Calculates actual telemetry metrics strictly respecting the active timeframe
 if not df_chart.empty and len(df_chart) > 0:
-    peak_p_val = df_chart['power_W'].max()
-    avg_p_val = df_chart['power_W'].mean()
-    avg_irr_val = df_chart['irradiance_W_m2'].mean()
-    pts_count = len(df_chart)
-    
-    # Calculate genuine energy produced within the selected timeframe
-    if len(df_chart) > 1 and 'energy_kWh' in df_chart.columns:
-        energy_prod_period = max(df_chart['energy_kWh'].iloc[-1] - df_chart['energy_kWh'].iloc[0], 0.0)
-    else:
-        energy_prod_period = 0.0
-        
-    peak_p_str = f"{peak_p_val:.2f} <span class='summary-item-unit'>W</span>"
-    avg_p_str = f"{avg_p_val:.2f} <span class='summary-item-unit'>W</span>"
-    energy_prod_str = f"{format_energy_kwh(energy_prod_period)} <span class='summary-item-unit'>kWh</span>"
-    avg_irr_str = f"{avg_irr_val:.1f} <span class='summary-item-unit'>W/m²</span>"
-    pts_str = f"{pts_count:,}"
+    valid_power = df_chart['power_W'].dropna()
+    valid_voltage = df_chart['voltage_V'].dropna()
+    valid_current = df_chart['current_mA'].dropna()
+    valid_irr = df_chart['irradiance_W_m2'].dropna()
+
+    peak_p = valid_power.max() if not valid_power.empty else None
+    peak_v = valid_voltage.max() if not valid_voltage.empty else None
+    peak_i = valid_current.max() if not valid_current.empty else None
+    avg_p = valid_power.mean() if not valid_power.empty else None
+    avg_irr = valid_irr.mean() if not valid_irr.empty else None
+
+    peak_p_str = f"{peak_p:.2f} <span class='snapshot-unit'>W</span>" if peak_p is not None else "N/A"
+    peak_v_str = f"{peak_v:.2f} <span class='snapshot-unit'>V</span>" if peak_v is not None else "N/A"
+    peak_i_str = f"{peak_i:.1f} <span class='snapshot-unit'>mA</span>" if peak_i is not None else "N/A"
+    avg_p_str = f"{avg_p:.2f} <span class='snapshot-unit'>W</span>" if avg_p is not None else "N/A"
+    avg_irr_str = f"{avg_irr:.1f} <span class='snapshot-unit'>W/m²</span>" if avg_irr is not None else "N/A"
 else:
     peak_p_str = "N/A"
+    peak_v_str = "N/A"
+    peak_i_str = "N/A"
     avg_p_str = "N/A"
-    energy_prod_str = "N/A"
     avg_irr_str = "N/A"
-    pts_str = "0"
 
 st.markdown(f"""
 <div class="glass-card" style="margin-top: 4px; margin-bottom: 12px;">
     <div class="card-heading">
-        <span>{get_icon('trending-up', size=14, color='#ea580c')} PRODUCTION SUMMARY ({timeframe.upper()})</span>
+        <span>{get_icon('trending-up', size=13, color='#ea580c')} PERFORMANCE SNAPSHOT ({timeframe.upper()})</span>
+        <span style="font-size: 10.5px; font-weight: 500; color: #64748b; text-transform: none;">Dynamic Telemetry Analytics</span>
     </div>
-    <div class="summary-grid">
-        <div class="summary-card-item">
-            <div class="summary-item-label">{get_icon('zap', size=12, color='#ea580c')} Peak Power</div>
-            <div class="summary-item-val">{peak_p_str}</div>
+    <div class="snapshot-grid">
+        <div class="snapshot-card">
+            <div class="snapshot-label">{get_icon('zap', size=12, color='#ea580c')} Peak Power</div>
+            <div class="snapshot-val">{peak_p_str}</div>
         </div>
-        <div class="summary-card-item">
-            <div class="summary-item-label">{get_icon('activity', size=12, color='#2563eb')} Average Power</div>
-            <div class="summary-item-val">{avg_p_str}</div>
+        <div class="snapshot-card">
+            <div class="snapshot-label">{get_icon('gauge', size=12, color='#2563eb')} Peak Voltage</div>
+            <div class="snapshot-val">{peak_v_str}</div>
         </div>
-        <div class="summary-card-item">
-            <div class="summary-item-label">{get_icon('battery-charging', size=12, color='#059669')} Energy Produced ({timeframe})</div>
-            <div class="summary-item-val">{energy_prod_str}</div>
+        <div class="snapshot-card">
+            <div class="snapshot-label">{get_icon('activity', size=12, color='#d97706')} Peak Current</div>
+            <div class="snapshot-val">{peak_i_str}</div>
         </div>
-        <div class="summary-card-item">
-            <div class="summary-item-label">{get_icon('sun', size=12, color='#f59e0b')} Average Irradiance</div>
-            <div class="summary-item-val">{avg_irr_str}</div>
+        <div class="snapshot-card">
+            <div class="snapshot-label">{get_icon('activity', size=12, color='#2563eb')} Average Power</div>
+            <div class="snapshot-val">{avg_p_str}</div>
         </div>
-        <div class="summary-card-item">
-            <div class="summary-item-label">{get_icon('layers', size=12, color='#64748b')} Data Points</div>
-            <div class="summary-item-val">{pts_str}</div>
+        <div class="snapshot-card">
+            <div class="snapshot-label">{get_icon('sun', size=12, color='#f59e0b')} Average Irradiance</div>
+            <div class="snapshot-val">{avg_irr_str}</div>
         </div>
     </div>
 </div>
@@ -1220,14 +1390,19 @@ st.markdown(f"""
 # =========================================================================================
 col_tbl_head, col_tbl_ctl = st.columns([3, 1])
 with col_tbl_head:
-    st.markdown("#### Recent Telemetry Measurements")
+    st.markdown(f"""
+    <div class="table-header-pill">
+        {get_icon('database', size=14, color='#2563eb')}
+        <span>Recent Telemetry Measurements</span>
+    </div>
+    """, unsafe_allow_html=True)
 with col_tbl_ctl:
     row_count = st.selectbox("Rows to display", options=[5, 10, 20, 50], index=1)
 
 if solar_data['log_records']:
     df_table = pd.DataFrame(solar_data['log_records'])
     
-    # Ensure energy_kWh column is present
+    # Ensure energy_kWh and power_W are present
     if 'energy_kWh' not in df_table.columns:
         if 'energy_mWh' in df_table.columns:
             df_table['energy_kWh'] = df_table['energy_mWh'] / 1_000_000.0
@@ -1235,6 +1410,12 @@ if solar_data['log_records']:
             df_table['energy_kWh'] = df_table['energy_Wh'] / 1000.0
         else:
             df_table['energy_kWh'] = 0.0
+
+    if 'power_W' not in df_table.columns:
+        if 'power_mW' in df_table.columns:
+            df_table['power_W'] = df_table['power_mW'] / 1000.0
+        else:
+            df_table['power_W'] = (df_table['voltage_V'] * df_table['current_mA']) / 1000.0
             
     display_cols = [
         'time_display', 'voltage_V', 'current_mA', 'power_W', 
