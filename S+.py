@@ -4,7 +4,7 @@
 SOLAR POWER MONITORING SYSTEM
 Advanced Real-Time Solar Photovoltaic Data Acquisition & Analytics Dashboard
 =========================================================================================
-Style: Professional Industrial / Scientific / High Information Density
+Style: Professional Industrial / Scientific / Dense & High Contrast
 Standardized Units: Power in W, Energy in kWh everywhere in UI and Exports
 Icon System: Unified Lucide-Style SVG (Dependency-Free, Stroke-Based)
 =========================================================================================
@@ -33,7 +33,7 @@ st.set_page_config(
 # =========================================================================================
 # 2. PROFESSIONAL UNIFIED ICON SYSTEM (LUCIDE SVG SPECIFICATION)
 # =========================================================================================
-def get_icon(name: str, size: int = 14, color: str = "currentColor", stroke_width: float = 1.8) -> str:
+def get_icon(name: str, size: int = 16, color: str = "currentColor", stroke_width: float = 1.8) -> str:
     """Returns a clean, resolution-independent inline SVG icon in refined Lucide style."""
     paths = {
         'sun': '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',
@@ -150,26 +150,26 @@ if sunrise <= time_in_hours <= sunset:
         sky_overlay = f"linear-gradient(rgba(15, 23, 42, {opacity*0.4}), rgba(254, 215, 170, {opacity*0.6}))"
         sun_color = "rgba(251, 146, 60, 0.85)"
         solar_phase = "Sunrise"
-        solar_phase_icon = get_icon('sun', size=13, color='#fb923c')
+        solar_phase_icon = get_icon('sun', size=16, color='#fb923c')
     elif progress > 0.80:
         p_sunset = progress - 0.80
         opacity = 0.30 + (p_sunset * 2.0)
         sky_overlay = f"linear-gradient(rgba(30, 41, 59, {opacity*0.4}), rgba(254, 215, 170, {opacity*0.7}))"
         sun_color = "rgba(249, 115, 22, 0.85)"
         solar_phase = "Sunset"
-        solar_phase_icon = get_icon('sunset', size=13, color='#f97316')
+        solar_phase_icon = get_icon('sunset', size=16, color='#f97316')
     elif progress > 0.55:
         opacity = 0.22
         sky_overlay = f"linear-gradient(rgba(255, 255, 255, {opacity}), rgba(254, 243, 199, {opacity + 0.1}))"
         sun_color = "rgba(252, 211, 77, 0.90)"
         solar_phase = "Afternoon"
-        solar_phase_icon = get_icon('sun', size=13, color='#f59e0b')
+        solar_phase_icon = get_icon('sun', size=16, color='#f59e0b')
     else:
         opacity = 0.18
         sky_overlay = f"linear-gradient(rgba(248, 250, 252, {opacity}), rgba(224, 242, 254, {opacity + 0.1}))"
         sun_color = "rgba(254, 240, 138, 0.95)"
         solar_phase = "Daylight"
-        solar_phase_icon = get_icon('sun', size=13, color='#eab308')
+        solar_phase_icon = get_icon('sun', size=16, color='#eab308')
         
     sun_orb_html = f"""
     <div style="
@@ -181,9 +181,9 @@ if sunrise <= time_in_hours <= sunset:
     "></div>
     """
 else:
-    sky_overlay = "linear-gradient(rgba(15, 23, 42, 0.85), rgba(30, 41, 59, 0.92))"
+    sky_overlay = "linear-gradient(rgba(15, 23, 42, 0.82), rgba(30, 41, 59, 0.90))"
     solar_phase = "Night"
-    solar_phase_icon = get_icon('moon', size=13, color='#94a3b8')
+    solar_phase_icon = get_icon('moon', size=16, color='#94a3b8')
     sun_orb_html = ""
 
 # =========================================================================================
@@ -210,7 +210,7 @@ st.markdown(f"""
     [data-testid="stAppViewBlockContainer"], .main .block-container {{
         max-width: 1600px !important;
         padding-top: 0.8rem !important;
-        padding-bottom: 1.8rem !important;
+        padding-bottom: 1.6rem !important;
     }}
 
     /* Professional Icon System Alignment */
@@ -225,7 +225,7 @@ st.markdown(f"""
         display: inline-block;
     }}
 
-    /* Status Indicator Dots */
+    /* Semantic Status Indicator Dots */
     .status-dot {{
         width: 7px;
         height: 7px;
@@ -246,16 +246,28 @@ st.markdown(f"""
         background-color: #ef4444;
         box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.20);
     }}
+    .status-dot.slate {{
+        background-color: #94a3b8;
+        box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.20);
+    }}
+    .status-dot.blue {{
+        background-color: #0284c7;
+        box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.20);
+    }}
+    .status-dot.orange {{
+        background-color: #ea580c;
+        box-shadow: 0 0 0 2px rgba(234, 88, 12, 0.20);
+    }}
 
     /* Header Bar: Refined & Compact */
     .header-bar {{
-        background: rgba(255, 255, 255, 0.95);
+        background: rgba(255, 255, 255, 0.96);
         backdrop-filter: blur(16px);
         border-radius: 14px;
-        padding: 11px 18px;
-        border: 1px solid rgba(255, 255, 255, 0.9);
+        padding: 10px 18px;
+        border: 1px solid rgba(255, 255, 255, 0.95);
         box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
-        margin-bottom: 12px;
+        margin-bottom: 10px;
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -288,7 +300,7 @@ st.markdown(f"""
         flex-wrap: wrap;
     }}
     .header-pill {{
-        background: rgba(241, 245, 249, 0.85);
+        background: rgba(241, 245, 249, 0.88);
         border: 1px solid rgba(226, 232, 240, 0.9);
         border-radius: 24px;
         padding: 4px 9px;
@@ -300,26 +312,26 @@ st.markdown(f"""
         gap: 5px;
     }}
     .header-pill-val {{ font-weight: 600; color: #0f172a; }}
-    .header-pill.status-green {{ background: rgba(236, 253, 245, 0.9); border-color: rgba(167, 243, 208, 0.9); color: #047857; }}
-    .header-pill.status-red {{ background: rgba(254, 242, 242, 0.9); border-color: rgba(254, 202, 202, 0.9); color: #b91c1c; }}
-    .header-pill.status-amber {{ background: rgba(254, 243, 199, 0.9); border-color: rgba(253, 230, 138, 0.9); color: #b45309; }}
+    .header-pill.status-green {{ background: rgba(236, 253, 245, 0.92); border-color: rgba(167, 243, 208, 0.9); color: #047857; }}
+    .header-pill.status-red {{ background: rgba(254, 242, 242, 0.92); border-color: rgba(254, 202, 202, 0.9); color: #b91c1c; }}
+    .header-pill.status-amber {{ background: rgba(254, 243, 199, 0.92); border-color: rgba(253, 230, 138, 0.9); color: #b45309; }}
 
-    /* Standard Glass Card Component */
+    /* Standard High-Contrast Glass Card Component */
     .glass-card {{
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(14px);
+        background: rgba(255, 255, 255, 0.96);
+        backdrop-filter: blur(16px);
         border-radius: 14px;
-        padding: 13px 15px;
-        border: 1px solid rgba(255, 255, 255, 0.9);
-        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.03);
+        padding: 12px 14px;
+        border: 1px solid rgba(255, 255, 255, 0.95);
+        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
         margin-bottom: 10px;
     }}
     .card-heading {{
         font-size: 11.5px;
         font-weight: 600;
-        color: #1e293b;
-        margin-bottom: 9px;
-        padding-bottom: 5px;
+        color: #0f172a;
+        margin-bottom: 8px;
+        padding-bottom: 4px;
         border-bottom: 1px solid #f1f5f9;
         display: flex;
         justify-content: space-between;
@@ -333,14 +345,14 @@ st.markdown(f"""
         gap: 6px;
     }}
 
-    /* Hero Power Card (Largest Visual KPI) */
+    /* Hero Power Card (Largest Visual Focus) */
     .hero-power-card {{
-        background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(254, 243, 199, 0.40));
-        border: 1.5px solid rgba(245, 158, 11, 0.30);
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(254, 243, 199, 0.45));
+        border: 1.5px solid rgba(245, 158, 11, 0.35);
         border-radius: 14px;
-        padding: 15px 14px;
+        padding: 14px 14px;
         text-align: center;
-        box-shadow: 0 6px 18px rgba(245, 158, 11, 0.06);
+        box-shadow: 0 6px 18px rgba(245, 158, 11, 0.07);
         margin-bottom: 10px;
     }}
     .hero-title {{
@@ -351,13 +363,13 @@ st.markdown(f"""
         color: #b45309;
         display: inline-flex;
         align-items: center;
-        gap: 5px;
+        gap: 6px;
     }}
     .hero-val {{
         font-size: 38px;
         font-weight: 700;
         color: #0f172a;
-        margin: 3px 0;
+        margin: 2px 0;
         letter-spacing: -0.5px;
         line-height: 1.1;
     }}
@@ -374,13 +386,13 @@ st.markdown(f"""
         margin-top: 1px;
     }}
 
-    /* KPI Grid */
-    .kpi-grid {{ display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }}
+    /* Electrical & Ambient KPI Grid */
+    .kpi-grid {{ display: grid; grid-template-columns: repeat(2, 1fr); gap: 7px; }}
     .kpi-item {{
-        background: rgba(248, 250, 252, 0.85);
-        border: 1px solid rgba(226, 232, 240, 0.85);
+        background: rgba(248, 250, 252, 0.88);
+        border: 1px solid rgba(226, 232, 240, 0.88);
         border-radius: 10px;
-        padding: 8px 10px;
+        padding: 7px 9px;
         text-align: left;
     }}
     .kpi-item-title {{
@@ -393,24 +405,59 @@ st.markdown(f"""
         gap: 5px;
     }}
     .kpi-item-val {{
-        font-size: 19px;
+        font-size: 18.5px;
         font-weight: 600;
         color: #0f172a;
         line-height: 1.2;
     }}
     .kpi-item-unit {{
-        font-size: 10.5px;
+        font-size: 10px;
         font-weight: 400;
         color: #64748b;
         margin-left: 2px;
     }}
 
+    /* SOLAR PRODUCTION STATUS (Left Column Bottom Section) */
+    .prod-status-grid {{
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 7px;
+    }}
+    .prod-status-item {{
+        background: rgba(248, 250, 252, 0.88);
+        border: 1px solid rgba(226, 232, 240, 0.88);
+        border-radius: 10px;
+        padding: 7px 9px;
+        text-align: left;
+    }}
+    .prod-status-label {{
+        font-size: 11px;
+        font-weight: 500;
+        color: #64748b;
+        margin-bottom: 2px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }}
+    .prod-status-val {{
+        font-size: 17px;
+        font-weight: 700;
+        color: #0f172a;
+        line-height: 1.2;
+    }}
+    .prod-status-unit {{
+        font-size: 11px;
+        font-weight: 500;
+        color: #d97706;
+        margin-left: 2px;
+    }}
+
     /* UNIFIED CHART CONTAINERS (Fixing Overlap & Night Layering) */
     div[data-testid="stVerticalBlockBorderWrapper"] {{
-        background: rgba(255, 255, 255, 0.95) !important;
-        backdrop-filter: blur(14px) !important;
+        background: rgba(255, 255, 255, 0.96) !important;
+        backdrop-filter: blur(16px) !important;
         border-radius: 12px !important;
-        border: 1px solid rgba(255, 255, 255, 0.9) !important;
+        border: 1px solid rgba(255, 255, 255, 0.95) !important;
         box-shadow: 0 4px 14px rgba(15, 23, 42, 0.035) !important;
         padding: 8px 10px 10px 10px !important;
         margin-bottom: 8px !important;
@@ -441,7 +488,7 @@ st.markdown(f"""
     .chart-header-title {{
         font-size: 12px;
         font-weight: 600;
-        color: #1e293b;
+        color: #0f172a;
         display: inline-flex;
         align-items: center;
         gap: 6px;
@@ -482,13 +529,13 @@ st.markdown(f"""
     div[data-testid="stRadio"] {{
         display: flex !important;
         justify-content: center !important;
-        margin-bottom: 6px;
+        margin-bottom: 5px;
     }}
     div[role="radiogroup"] {{
         display: inline-flex !important;
         justify-content: center !important;
         align-items: center !important;
-        background: rgba(255, 255, 255, 0.95) !important;
+        background: rgba(255, 255, 255, 0.96) !important;
         padding: 3px 8px !important;
         border-radius: 40px !important;
         border: 1px solid rgba(226, 232, 240, 0.9) !important;
@@ -510,12 +557,12 @@ st.markdown(f"""
     .timeframe-caption-box {{
         display: flex;
         justify-content: center;
-        margin-bottom: 6px;
+        margin-bottom: 5px;
     }}
     .timeframe-caption {{
         font-size: 11px;
         color: #475569;
-        background: rgba(255, 255, 255, 0.88);
+        background: rgba(255, 255, 255, 0.92);
         padding: 2px 10px;
         border-radius: 12px;
         border: 1px solid rgba(226, 232, 240, 0.85);
@@ -539,17 +586,17 @@ st.markdown(f"""
         }}
     }}
     .snapshot-card {{
-        background: rgba(248, 250, 252, 0.85);
+        background: rgba(248, 250, 252, 0.88);
         border: 1px solid rgba(226, 232, 240, 0.9);
         border-radius: 10px;
-        padding: 9px 12px;
+        padding: 8px 11px;
         text-align: left;
     }}
     .snapshot-label {{
         font-size: 11px;
         font-weight: 500;
         color: #64748b;
-        margin-bottom: 3px;
+        margin-bottom: 2px;
         display: flex;
         align-items: center;
         gap: 5px;
@@ -567,14 +614,14 @@ st.markdown(f"""
         margin-left: 2px;
     }}
 
-    /* Status Items */
+    /* SYSTEM STATUS ROWS: 25% REDUCED VERTICAL SPACING & STRONGER EMPHASIS */
     .status-row {{
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 5.5px 0;
-        border-bottom: 1px solid #f1f5f9;
-        font-size: 11.5px;
+        padding: 4px 0;
+        border-bottom: 1px solid #f8fafc;
+        font-size: 11px;
     }}
     .status-row:last-child {{ border-bottom: none; }}
     .status-label {{
@@ -583,53 +630,27 @@ st.markdown(f"""
         display: inline-flex;
         align-items: center;
         gap: 6px;
+        font-size: 11px;
     }}
     .status-badge {{
         font-weight: 600;
         display: inline-flex;
         align-items: center;
         gap: 5px;
-    }}
-
-    /* Solar Conditions Meter */
-    .scale-bar {{
-        height: 7px;
-        border-radius: 6px;
-        background: linear-gradient(90deg, #93c5fd 0%, #fde047 50%, #f97316 100%);
-        position: relative;
-        margin: 10px 0 6px 0;
-    }}
-    .scale-pointer {{
-        position: absolute;
-        top: -4px;
-        width: 15px;
-        height: 15px;
-        background: #0f172a;
-        border: 2px solid #ffffff;
-        border-radius: 50%;
-        transform: translateX(-50%);
-        box-shadow: 0 1px 5px rgba(0,0,0,0.25);
-        transition: left 0.5s ease;
-    }}
-    .scale-labels {{
-        display: flex;
-        justify-content: space-between;
-        font-size: 10px;
-        font-weight: 500;
-        color: #64748b;
+        font-size: 11.5px;
     }}
 
     /* Event Log List */
     .event-log-container {{
-        max-height: 140px;
+        max-height: 130px;
         overflow-y: auto;
         padding-right: 4px;
     }}
     .event-entry {{
         font-size: 11px;
-        padding: 5px 8px;
+        padding: 4px 7px;
         border-radius: 6px;
-        margin-bottom: 4px;
+        margin-bottom: 3px;
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -643,11 +664,11 @@ st.markdown(f"""
 
     /* Table Typography & Header Pill */
     .table-header-pill {{
-        background: rgba(255, 255, 255, 0.95);
+        background: rgba(255, 255, 255, 0.96);
         backdrop-filter: blur(14px);
         border-radius: 8px;
         padding: 5px 12px;
-        border: 1px solid rgba(255, 255, 255, 0.9);
+        border: 1px solid rgba(255, 255, 255, 0.95);
         box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
         display: inline-flex;
         align-items: center;
@@ -913,16 +934,16 @@ if solar_data['last_update_time']:
         
     if sec_since_update > 30:
         health_status = "Warning: Data Delayed"
-        health_color = "status-amber"
+        health_color = "amber"
         system_normal = False
     else:
         health_status = "System Normal"
-        health_color = "status-green"
+        health_color = "green"
         system_normal = True
 else:
     freshness_label = "Waiting for data..."
     health_status = "Waiting for Telemetry"
-    health_color = "status-amber"
+    health_color = "amber"
     system_normal = False
 
 mqtt_badge_cls = "status-green" if solar_data['mqtt_connected'] else "status-red"
@@ -934,15 +955,15 @@ mqtt_badge_txt = "Connected" if solar_data['mqtt_connected'] else "Disconnected"
 st.markdown(f"""
 <div class="header-bar">
     <div class="header-title-box">
-        <div class="header-main-title">{get_icon('sun', size=20, color='#ea580c', stroke_width=2.0)} SOLAR POWER MONITORING</div>
+        <div class="header-main-title">{get_icon('sun', size=22, color='#ea580c', stroke_width=2.0)} SOLAR POWER MONITORING</div>
         <div class="header-subtitle">Clean Energy · Real-time Data · A Greener Tomorrow</div>
     </div>
     <div class="header-badges">
-        <div class="header-pill">{get_icon('calendar', size=13, color='#64748b')} <span class="header-pill-val">{jalali_date_str}</span> <span style="font-size:10px; opacity:0.75;">({gregorian_date_str})</span></div>
-        <div class="header-pill">{get_icon('clock', size=13, color='#64748b')} <span class="header-pill-val">{time_str}</span></div>
-        <div class="header-pill">{get_icon('cloud-sun', size=13, color='#0284c7')} <span class="header-pill-val">{tehran_temp}</span> <span style="font-size:10px; opacity:0.75;">Tehran</span></div>
+        <div class="header-pill">{get_icon('calendar', size=16, color='#64748b')} <span class="header-pill-val">{jalali_date_str}</span> <span style="font-size:10px; opacity:0.75;">({gregorian_date_str})</span></div>
+        <div class="header-pill">{get_icon('clock', size=16, color='#64748b')} <span class="header-pill-val">{time_str}</span></div>
+        <div class="header-pill">{get_icon('cloud-sun', size=16, color='#0284c7')} <span class="header-pill-val">{tehran_temp}</span> <span style="font-size:10px; opacity:0.75;">Tehran</span></div>
         <div class="header-pill {mqtt_badge_cls}"><span class="status-dot {'green' if solar_data['mqtt_connected'] else 'red'}"></span> {mqtt_badge_txt}</div>
-        <div class="header-pill">{get_icon('activity', size=13, color='#64748b')} <span class="header-pill-val">{freshness_label}</span></div>
+        <div class="header-pill">{get_icon('activity', size=16, color='#64748b')} <span class="header-pill-val">{freshness_label}</span></div>
         <div class="header-pill">{solar_phase_icon} <span class="header-pill-val">{solar_phase}</span></div>
     </div>
 </div>
@@ -954,7 +975,7 @@ st.markdown(f"""
 col_left, col_center, col_right = st.columns([1.1, 2.3, 1.2], gap="medium")
 
 # -----------------------------------------------------------------------------------------
-# ZONE 1 (LEFT): MAIN HERO KPI & ELECTRICAL / AMBIENT KPIS
+# ZONE 1 (LEFT): HERO KPI, ELECTRICAL/AMBIENT KPIS & SOLAR PRODUCTION STATUS
 # -----------------------------------------------------------------------------------------
 with col_left:
     # 1. Hero KPI: Current Power (Standardized to W Everywhere, Dominant Visual Focus)
@@ -963,7 +984,7 @@ with col_left:
 
     st.markdown(f"""
     <div class="hero-power-card">
-        <div class="hero-title">{get_icon('zap', size=13, color='#ea580c', stroke_width=2.0)} CURRENT GENERATED POWER</div>
+        <div class="hero-title">{get_icon('zap', size=18, color='#ea580c', stroke_width=2.0)} CURRENT GENERATED POWER</div>
         <div class="hero-val">{power_hero_val}<span class="hero-unit">W</span></div>
         <div class="hero-sub">Live Photovoltaic Power Output</div>
     </div>
@@ -986,28 +1007,102 @@ with col_left:
         </div>
         <div class="kpi-grid">
             <div class="kpi-item">
-                <div class="kpi-item-title">{get_icon('gauge', size=13, color='#2563eb')} Voltage</div>
+                <div class="kpi-item-title">{get_icon('gauge', size=16, color='#2563eb')} Voltage</div>
                 <div class="kpi-item-val">{volt_val:.2f} <span class="kpi-item-unit">V</span></div>
             </div>
             <div class="kpi-item">
-                <div class="kpi-item-title">{get_icon('activity', size=13, color='#d97706')} Current</div>
+                <div class="kpi-item-title">{get_icon('activity', size=16, color='#d97706')} Current</div>
                 <div class="kpi-item-val">{curr_val:.1f} <span class="kpi-item-unit">mA</span></div>
             </div>
             <div class="kpi-item">
-                <div class="kpi-item-title">{get_icon('sun', size=13, color='#f59e0b')} Irradiance</div>
+                <div class="kpi-item-title">{get_icon('sun', size=16, color='#f59e0b')} Irradiance</div>
                 <div class="kpi-item-val">{irr_val:.1f} <span class="kpi-item-unit">W/m²</span></div>
             </div>
             <div class="kpi-item">
-                <div class="kpi-item-title">{get_icon('sun-dim', size=13, color='#ca8a04')} Illuminance</div>
+                <div class="kpi-item-title">{get_icon('sun-dim', size=16, color='#ca8a04')} Illuminance</div>
                 <div class="kpi-item-val">{lux_val:.1f} <span class="kpi-item-unit">Lux</span></div>
             </div>
             <div class="kpi-item">
-                <div class="kpi-item-title">{get_icon('thermometer', size=13, color='#e11d48')} Panel Temp</div>
+                <div class="kpi-item-title">{get_icon('thermometer', size=16, color='#e11d48')} Panel Temp</div>
                 <div class="kpi-item-val">{temp_val:.1f} <span class="kpi-item-unit">°C</span></div>
             </div>
             <div class="kpi-item">
-                <div class="kpi-item-title">{get_icon('battery-charging', size=13, color='#059669')} Total Energy</div>
+                <div class="kpi-item-title">{get_icon('battery-charging', size=16, color='#059669')} Total Energy</div>
                 <div class="kpi-item-val">{energy_disp_val} <span class="kpi-item-unit">kWh</span></div>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # 3. Dedicated Section: SOLAR PRODUCTION STATUS (Derived from genuine real-time data)
+    today_date_str = now_tehran.strftime("%Y-%m-%d")
+    today_records = [r for r in solar_data['log_records'] if r.get('timestamp', '').startswith(today_date_str)]
+    
+    if today_records:
+        power_vals_today = [r.get('power_W', 0.0) for r in today_records if r.get('power_W') is not None]
+        peak_today_val = max(power_vals_today) if power_vals_today else current_power_w
+        if len(today_records) > 1 and 'energy_kWh' in today_records[-1] and 'energy_kWh' in today_records[0]:
+            energy_today_val = max(today_records[-1]['energy_kWh'] - today_records[0]['energy_kWh'], 0.0)
+        else:
+            energy_today_val = total_energy_kwh
+    else:
+        peak_today_val = current_power_w if current_power_w > 0 else None
+        energy_today_val = total_energy_kwh if total_energy_kwh > 0 else 0.0
+
+    cur_prod_str = f"{format_power_w(current_power_w)} <span class='prod-status-unit'>W</span>"
+    peak_today_str = f"{format_power_w(peak_today_val)} <span class='prod-status-unit'>W</span>" if peak_today_val is not None else "N/A"
+    energy_today_str = f"{format_energy_kwh(energy_today_val)} <span class='prod-status-unit'>kWh</span>"
+
+    # Determine real physical state based on connectivity, freshness, power, and irradiance
+    sec_since_up = (time.time() - solar_data['last_update_time']) if solar_data['last_update_time'] else 9999
+    if not solar_data['mqtt_connected']:
+        prod_state_txt = "Waiting for Telemetry"
+        prod_state_dot = "amber"
+        prod_state_col = "#b45309"
+    elif sec_since_up > 35:
+        prod_state_txt = "Waiting for Telemetry"
+        prod_state_dot = "amber"
+        prod_state_col = "#b45309"
+    else:
+        if current_power_w >= 0.20:
+            prod_state_txt = "Producing"
+            prod_state_dot = "green"
+            prod_state_col = "#047857"
+        elif irr_val >= 50.0:
+            prod_state_txt = "Low Output"
+            prod_state_dot = "amber"
+            prod_state_col = "#b45309"
+        else:
+            prod_state_txt = "No Production"
+            prod_state_dot = "slate"
+            prod_state_col = "#64748b"
+
+    st.markdown(f"""
+    <div class="glass-card">
+        <div class="card-heading">
+            <span>{get_icon('activity', size=16, color='#ea580c')} SOLAR PRODUCTION STATUS</span>
+            <span style="font-size: 11px; font-weight: 600; color: {prod_state_col}; display: inline-flex; align-items: center; gap: 4px; text-transform: none;">
+                <span class="status-dot {prod_state_dot}"></span> {prod_state_txt}
+            </span>
+        </div>
+        <div class="prod-status-grid">
+            <div class="prod-status-item">
+                <div class="prod-status-label">{get_icon('zap', size=16, color='#ea580c')} Current Output</div>
+                <div class="prod-status-val">{cur_prod_str}</div>
+            </div>
+            <div class="prod-status-item">
+                <div class="prod-status-label">{get_icon('trending-up', size=16, color='#2563eb')} Peak Today</div>
+                <div class="prod-status-val">{peak_today_str}</div>
+            </div>
+            <div class="prod-status-item">
+                <div class="prod-status-label">{get_icon('battery-charging', size=16, color='#059669')} Energy Today</div>
+                <div class="prod-status-val">{energy_today_str}</div>
+            </div>
+            <div class="prod-status-item">
+                <div class="prod-status-label">{get_icon('shield-check', size=16, color='#64748b')} Generation State</div>
+                <div class="prod-status-val" style="font-size: 13.5px; font-weight: 600; color: {prod_state_col}; padding-top: 2px;">
+                    <span class="status-dot {prod_state_dot}"></span> {prod_state_txt}
+                </div>
             </div>
         </div>
     </div>
@@ -1086,7 +1181,7 @@ with col_center:
     with st.container(border=True):
         st.markdown(f"""
         <div class="chart-card-header">
-            <span class="chart-header-title">{get_icon('sun', size=14, color='#ea580c')} Power (W) & Irradiance (W/m²)</span>
+            <span class="chart-header-title">{get_icon('sun', size=16, color='#ea580c')} Power (W) & Irradiance (W/m²)</span>
         </div>
         """, unsafe_allow_html=True)
         if not df_chart.empty and len(df_chart) > 0:
@@ -1113,7 +1208,7 @@ with col_center:
         with st.container(border=True):
             st.markdown(f"""
             <div class="chart-card-header">
-                <span class="chart-header-title">{get_icon('gauge', size=13, color='#2563eb')} Voltage (V)</span>
+                <span class="chart-header-title">{get_icon('gauge', size=16, color='#2563eb')} Voltage (V)</span>
             </div>
             """, unsafe_allow_html=True)
             if not df_chart.empty and len(df_chart) > 0:
@@ -1121,7 +1216,7 @@ with col_center:
             else:
                 st.markdown(f"""
                 <div class="chart-empty-state sec-empty">
-                    {get_icon('gauge', size=15, color='#94a3b8')}
+                    {get_icon('gauge', size=16, color='#94a3b8')}
                     <div class="empty-state-title">No telemetry yet</div>
                     <div class="empty-state-sub">Waiting for incoming data...</div>
                 </div>
@@ -1131,7 +1226,7 @@ with col_center:
         with st.container(border=True):
             st.markdown(f"""
             <div class="chart-card-header">
-                <span class="chart-header-title">{get_icon('sun-dim', size=13, color='#ca8a04')} Illuminance (Lux)</span>
+                <span class="chart-header-title">{get_icon('sun-dim', size=16, color='#ca8a04')} Illuminance (Lux)</span>
             </div>
             """, unsafe_allow_html=True)
             if not df_chart.empty and len(df_chart) > 0:
@@ -1139,7 +1234,7 @@ with col_center:
             else:
                 st.markdown(f"""
                 <div class="chart-empty-state sec-empty">
-                    {get_icon('sun-dim', size=15, color='#94a3b8')}
+                    {get_icon('sun-dim', size=16, color='#94a3b8')}
                     <div class="empty-state-title">No telemetry yet</div>
                     <div class="empty-state-sub">Waiting for incoming data...</div>
                 </div>
@@ -1150,7 +1245,7 @@ with col_center:
         with st.container(border=True):
             st.markdown(f"""
             <div class="chart-card-header">
-                <span class="chart-header-title">{get_icon('activity', size=13, color='#d97706')} Current (mA)</span>
+                <span class="chart-header-title">{get_icon('activity', size=16, color='#d97706')} Current (mA)</span>
             </div>
             """, unsafe_allow_html=True)
             if not df_chart.empty and len(df_chart) > 0:
@@ -1158,7 +1253,7 @@ with col_center:
             else:
                 st.markdown(f"""
                 <div class="chart-empty-state sec-empty">
-                    {get_icon('activity', size=15, color='#94a3b8')}
+                    {get_icon('activity', size=16, color='#94a3b8')}
                     <div class="empty-state-title">No telemetry yet</div>
                     <div class="empty-state-sub">Waiting for incoming data...</div>
                 </div>
@@ -1168,7 +1263,7 @@ with col_center:
         with st.container(border=True):
             st.markdown(f"""
             <div class="chart-card-header">
-                <span class="chart-header-title">{get_icon('sun', size=13, color='#ea580c')} Irradiance (W/m²)</span>
+                <span class="chart-header-title">{get_icon('sun', size=16, color='#ea580c')} Irradiance (W/m²)</span>
             </div>
             """, unsafe_allow_html=True)
             if not df_chart.empty and len(df_chart) > 0:
@@ -1176,7 +1271,7 @@ with col_center:
             else:
                 st.markdown(f"""
                 <div class="chart-empty-state sec-empty">
-                    {get_icon('sun', size=15, color='#94a3b8')}
+                    {get_icon('sun', size=16, color='#94a3b8')}
                     <div class="empty-state-title">No telemetry yet</div>
                     <div class="empty-state-sub">Waiting for incoming data...</div>
                 </div>
@@ -1187,7 +1282,7 @@ with col_center:
         with st.container(border=True):
             st.markdown(f"""
             <div class="chart-card-header">
-                <span class="chart-header-title">{get_icon('thermometer', size=13, color='#dc2626')} Temperature (°C)</span>
+                <span class="chart-header-title">{get_icon('thermometer', size=16, color='#dc2626')} Temperature (°C)</span>
             </div>
             """, unsafe_allow_html=True)
             if not df_chart.empty and len(df_chart) > 0:
@@ -1195,7 +1290,7 @@ with col_center:
             else:
                 st.markdown(f"""
                 <div class="chart-empty-state sec-empty">
-                    {get_icon('thermometer', size=15, color='#94a3b8')}
+                    {get_icon('thermometer', size=16, color='#94a3b8')}
                     <div class="empty-state-title">No telemetry yet</div>
                     <div class="empty-state-sub">Waiting for incoming data...</div>
                 </div>
@@ -1205,7 +1300,7 @@ with col_center:
         with st.container(border=True):
             st.markdown(f"""
             <div class="chart-card-header">
-                <span class="chart-header-title">{get_icon('battery-charging', size=13, color='#10b981')} Energy (kWh)</span>
+                <span class="chart-header-title">{get_icon('battery-charging', size=16, color='#10b981')} Energy (kWh)</span>
             </div>
             """, unsafe_allow_html=True)
             if not df_chart.empty and len(df_chart) > 0:
@@ -1213,79 +1308,117 @@ with col_center:
             else:
                 st.markdown(f"""
                 <div class="chart-empty-state sec-empty">
-                    {get_icon('battery-charging', size=15, color='#94a3b8')}
+                    {get_icon('battery-charging', size=16, color='#94a3b8')}
                     <div class="empty-state-title">No telemetry yet</div>
                     <div class="empty-state-sub">Waiting for incoming data...</div>
                 </div>
                 """, unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------------------
-# ZONE 3 (RIGHT): SYSTEM STATUS, SOLAR CONDITIONS, EVENTS & EXPORT
+# ZONE 3 (RIGHT): SYSTEM STATUS, SOLAR CONDITIONS GAUGE, EVENTS & EXPORT
 # -----------------------------------------------------------------------------------------
 with col_right:
-    # 1. System Status Panel
+    # 1. System Status Panel (25% Reduced Vertical Spacing, High Density, Semantic Colors)
     logging_status_str = "Active" if solar_data['logging_active'] else "Error"
-    logging_status_color = "#10b981" if solar_data['logging_active'] else "#ef4444"
+    logging_status_color = "#047857" if solar_data['logging_active'] else "#b91c1c"
+    logging_dot_color = "green" if solar_data['logging_active'] else "red"
 
     st.markdown(f"""
     <div class="glass-card">
         <div class="card-heading">
-            <span>{get_icon('shield-check', size=14, color='#0f172a')} SYSTEM STATUS</span>
+            <span>{get_icon('shield-check', size=16, color='#0f172a')} SYSTEM STATUS</span>
         </div>
         <div class="status-row">
-            <span class="status-label">Overall Health</span>
+            <span class="status-label">{get_icon('activity', size=16, color='#2563eb')} Overall Health</span>
             <span class="status-badge" style="color: {'#047857' if system_normal else '#b45309'};"><span class="status-dot {'green' if system_normal else 'amber'}"></span> {health_status}</span>
         </div>
         <div class="status-row">
-            <span class="status-label">{get_icon('wifi', size=13, color='#64748b')} MQTT Connection</span>
+            <span class="status-label">{get_icon('wifi', size=16, color='#059669' if solar_data['mqtt_connected'] else '#ef4444')} MQTT Connection</span>
             <span class="status-badge" style="color: {'#047857' if solar_data['mqtt_connected'] else '#b91c1c'};"><span class="status-dot {'green' if solar_data['mqtt_connected'] else 'red'}"></span> {'Connected' if solar_data['mqtt_connected'] else 'Disconnected'}</span>
         </div>
         <div class="status-row">
-            <span class="status-label">{get_icon('database', size=13, color='#64748b')} Data Logging</span>
-            <span class="status-badge" style="color: {logging_status_color};"><span class="status-dot {'green' if solar_data['logging_active'] else 'red'}"></span> {logging_status_str}</span>
+            <span class="status-label">{get_icon('database', size=16, color='#10b981' if solar_data['logging_active'] else '#ef4444')} Data Logging</span>
+            <span class="status-badge" style="color: {logging_status_color};"><span class="status-dot {logging_dot_color}"></span> {logging_status_str}</span>
         </div>
         <div class="status-row">
-            <span class="status-label">{get_icon('clock', size=13, color='#64748b')} Last Packet</span>
+            <span class="status-label">{get_icon('clock', size=16, color='#64748b')} Last Packet</span>
             <span class="status-badge" style="color: #0f172a;">{freshness_label}</span>
         </div>
         <div class="status-row">
-            <span class="status-label">{get_icon('refresh', size=13, color='#64748b')} Reconnect Count</span>
+            <span class="status-label">{get_icon('refresh', size=16, color='#2563eb')} Reconnect Count</span>
             <span class="status-badge" style="color: #2563eb;">{solar_data['reconnect_count']}</span>
         </div>
         <div class="status-row">
-            <span class="status-label">{get_icon('layers', size=13, color='#64748b')} Total Messages</span>
-            <span class="status-badge" style="color: #64748b;">{solar_data['msg_count']:,}</span>
+            <span class="status-label">{get_icon('layers', size=16, color='#64748b')} Total Messages</span>
+            <span class="status-badge" style="color: #475569;">{solar_data['msg_count']:,}</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-    # 2. Solar Conditions Panel & Classification
-    current_irr = solar_data['watts']
+    # 2. Solar Conditions: Compact Semi-Circular Gauge / Radial Indicator (STC Normalization)
+    current_irr = max(0.0, float(solar_data['watts']))
+    # Standard STC solar irradiance normalization: 1000 W/m² = 1.0 (1 Sun)
+    norm_frac = min(max(current_irr / 1000.0, 0.0), 1.0)
+    
     if current_irr < 200.0:
-        cond_label = "Low Solar Intensity"
-        pct_pin = min(max(current_irr / 200.0 * 33.0, 5.0), 33.0)
+        cond_tier = "Low"
+        cond_badge_color = "#0284c7"
+        cond_tier_dot = "blue"
     elif current_irr <= 650.0:
-        cond_label = "Moderate Solar Intensity"
-        pct_pin = 33.0 + ((current_irr - 200.0) / 450.0 * 34.0)
+        cond_tier = "Moderate"
+        cond_badge_color = "#d97706"
+        cond_tier_dot = "amber"
     else:
-        cond_label = "Strong Solar Radiation"
-        pct_pin = 67.0 + min(((current_irr - 650.0) / 350.0 * 33.0), 31.0)
+        cond_tier = "Strong"
+        cond_badge_color = "#ea580c"
+        cond_tier_dot = "orange"
+
+    # Semi-circular geometry: center (100, 75), radius = 56
+    gauge_r = 56
+    gauge_cx, gauge_cy = 100, 75
+    arc_length = math.pi * gauge_r # ~175.93
+    dash_offset = arc_length * (1.0 - norm_frac)
+    
+    # Needle coordinates on arc
+    angle_rad = math.pi * (1.0 - norm_frac)
+    needle_x = gauge_cx + gauge_r * math.cos(angle_rad)
+    needle_y = gauge_cy - gauge_r * math.sin(angle_rad)
+    stc_pct_str = f"{(current_irr / 10.0):.1f}% STC"
 
     st.markdown(f"""
     <div class="glass-card">
         <div class="card-heading">
-            <span>{get_icon('sun', size=14, color='#ea580c')} SOLAR CONDITIONS</span>
+            <span>{get_icon('sun', size=16, color='#ea580c')} SOLAR CONDITIONS</span>
+            <span style="font-size: 10.5px; font-weight: 500; color: #64748b; text-transform: none;">Solar Intensity</span>
         </div>
-        <div style="font-size: 11.5px; color: #475569; margin-bottom: 6px;">
-            Solar Intensity: <b style="color: #0f172a;">{cond_label}</b> ({current_irr:.1f} W/m²)
-        </div>
-        <div class="scale-bar">
-            <div class="scale-pointer" style="left: {pct_pin:.1f}%;"></div>
-        </div>
-        <div class="scale-labels">
-            <span>Low (&lt;200)</span>
-            <span>Moderate (200–650)</span>
-            <span>Strong (&gt;650 W/m²)</span>
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; padding: 2px 0;">
+            <svg viewBox="24 12 152 75" style="width: 100%; max-width: 210px; overflow: visible;">
+                <defs>
+                    <linearGradient id="solarArcGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stop-color="#38bdf8" />
+                        <stop offset="35%" stop-color="#fbbf24" />
+                        <stop offset="70%" stop-color="#f97316" />
+                        <stop offset="100%" stop-color="#ea580c" />
+                    </linearGradient>
+                </defs>
+                <!-- Background Arc Track -->
+                <path d="M 44 75 A 56 56 0 0 1 156 75" fill="none" stroke="#e2e8f0" stroke-width="8" stroke-linecap="round" />
+                <!-- Active Solar Radiation Arc -->
+                <path d="M 44 75 A 56 56 0 0 1 156 75" fill="none" stroke="url(#solarArcGrad)" stroke-width="8" stroke-linecap="round"
+                      stroke-dasharray="{arc_length:.2f}" stroke-dashoffset="{dash_offset:.2f}" />
+                <!-- Precision Indicator Bead -->
+                <circle cx="{needle_x:.1f}" cy="{needle_y:.1f}" r="5.5" fill="#0f172a" stroke="#ffffff" stroke-width="2" />
+                <!-- Center Digital Readouts -->
+                <text x="100" y="55" text-anchor="middle" font-size="17" font-weight="700" fill="#0f172a" letter-spacing="-0.3px">{current_irr:.1f}</text>
+                <text x="100" y="68" text-anchor="middle" font-size="10" font-weight="500" fill="#64748b">W/m²</text>
+            </svg>
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 210px; margin-top: -1px; padding: 0 4px;">
+                <span style="font-size: 10px; font-weight: 500; color: #64748b;">Low</span>
+                <span style="display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; color: {cond_badge_color}; background: rgba(241, 245, 249, 0.9); padding: 2px 8px; border-radius: 12px; border: 1px solid rgba(226, 232, 240, 0.9);">
+                    <span class="status-dot {cond_tier_dot}"></span> {cond_tier} ({stc_pct_str})
+                </span>
+                <span style="font-size: 10px; font-weight: 500; color: #64748b;">Strong</span>
+            </div>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -1304,7 +1437,7 @@ with col_right:
     st.markdown(f"""
     <div class="glass-card">
         <div class="card-heading">
-            <span>{get_icon('bell', size=14, color='#0f172a')} RECENT EVENTS</span>
+            <span>{get_icon('bell', size=16, color='#0f172a')} RECENT EVENTS</span>
         </div>
         <div class="event-log-container">
             {event_html_items}
@@ -1329,7 +1462,18 @@ with col_right:
 # =========================================================================================
 # 12. COMPACT ANALYTICAL "PERFORMANCE SNAPSHOT" SECTION (TIMEFRAME-AWARE REAL METRICS)
 # =========================================================================================
-# Calculates actual telemetry metrics strictly respecting the active timeframe
+# Format clean timeframe title dynamically matching selected filter
+tf_map = {
+    "1 Min": "1 MIN",
+    "5 Mins": "5 MIN",
+    "15 Mins": "15 MIN",
+    "1 Hour": "1 HOUR",
+    "12 Hours": "12 HOURS",
+    "All-Time": "ALL-TIME"
+}
+tf_title = tf_map.get(timeframe, timeframe.upper())
+snapshot_heading = f"PERFORMANCE SNAPSHOT · {tf_title}"
+
 if not df_chart.empty and len(df_chart) > 0:
     valid_power = df_chart['power_W'].dropna()
     valid_voltage = df_chart['voltage_V'].dropna()
@@ -1355,30 +1499,30 @@ else:
     avg_irr_str = "N/A"
 
 st.markdown(f"""
-<div class="glass-card" style="margin-top: 4px; margin-bottom: 12px;">
+<div class="glass-card" style="margin-top: 2px; margin-bottom: 10px;">
     <div class="card-heading">
-        <span>{get_icon('trending-up', size=13, color='#ea580c')} PERFORMANCE SNAPSHOT ({timeframe.upper()})</span>
+        <span>{get_icon('trending-up', size=16, color='#ea580c')} {snapshot_heading}</span>
         <span style="font-size: 10.5px; font-weight: 500; color: #64748b; text-transform: none;">Dynamic Telemetry Analytics</span>
     </div>
     <div class="snapshot-grid">
         <div class="snapshot-card">
-            <div class="snapshot-label">{get_icon('zap', size=12, color='#ea580c')} Peak Power</div>
+            <div class="snapshot-label">{get_icon('zap', size=16, color='#ea580c')} Peak Power</div>
             <div class="snapshot-val">{peak_p_str}</div>
         </div>
         <div class="snapshot-card">
-            <div class="snapshot-label">{get_icon('gauge', size=12, color='#2563eb')} Peak Voltage</div>
+            <div class="snapshot-label">{get_icon('gauge', size=16, color='#2563eb')} Peak Voltage</div>
             <div class="snapshot-val">{peak_v_str}</div>
         </div>
         <div class="snapshot-card">
-            <div class="snapshot-label">{get_icon('activity', size=12, color='#d97706')} Peak Current</div>
+            <div class="snapshot-label">{get_icon('activity', size=16, color='#d97706')} Peak Current</div>
             <div class="snapshot-val">{peak_i_str}</div>
         </div>
         <div class="snapshot-card">
-            <div class="snapshot-label">{get_icon('activity', size=12, color='#2563eb')} Average Power</div>
+            <div class="snapshot-label">{get_icon('activity', size=16, color='#2563eb')} Average Power</div>
             <div class="snapshot-val">{avg_p_str}</div>
         </div>
         <div class="snapshot-card">
-            <div class="snapshot-label">{get_icon('sun', size=12, color='#f59e0b')} Average Irradiance</div>
+            <div class="snapshot-label">{get_icon('sun', size=16, color='#f59e0b')} Average Irradiance</div>
             <div class="snapshot-val">{avg_irr_str}</div>
         </div>
     </div>
@@ -1392,7 +1536,7 @@ col_tbl_head, col_tbl_ctl = st.columns([3, 1])
 with col_tbl_head:
     st.markdown(f"""
     <div class="table-header-pill">
-        {get_icon('database', size=14, color='#2563eb')}
+        {get_icon('database', size=16, color='#2563eb')}
         <span>Recent Telemetry Measurements</span>
     </div>
     """, unsafe_allow_html=True)
@@ -1436,7 +1580,7 @@ if solar_data['log_records']:
         'irradiance_W_m2': 'Irradiance (W/m²)'
     }
     df_display = df_display.rename(columns=clean_col_names)
-    st.dataframe(df_display, use_container_width=True, height=200)
+    st.dataframe(df_display, use_container_width=True, height=195)
 else:
     st.info("Waiting for incoming telemetry packets to populate table...")
 
