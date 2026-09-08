@@ -4,8 +4,9 @@
 SOLAR POWER MONITORING SYSTEM
 Advanced Real-Time Solar Photovoltaic Data Acquisition & Analytics Dashboard
 =========================================================================================
-Style: Professional Industrial / Scientific / Clean
+Style: Professional Industrial / Scientific / Refined Modern Typography
 Icon System: Coherent Lucide-style SVG (Dependency-Free, Stroke-Based)
+Typography: Inter / Segoe UI / Clean Proportional Hierarchy (10-15% Compact Tuning)
 =========================================================================================
 """
 
@@ -33,8 +34,8 @@ st.set_page_config(
 # =========================================================================================
 # 2. PROFESSIONAL UNIFIED ICON SYSTEM (LUCIDE SVG SPECIFICATION)
 # =========================================================================================
-def get_icon(name: str, size: int = 16, color: str = "currentColor", stroke_width: float = 2.0) -> str:
-    """Returns a clean, resolution-independent inline SVG icon in Lucide style."""
+def get_icon(name: str, size: int = 15, color: str = "currentColor", stroke_width: float = 1.8) -> str:
+    """Returns a clean, resolution-independent inline SVG icon in refined Lucide style."""
     paths = {
         'sun': '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',
         'sun-dim': '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m5 5 1.5 1.5"/><path d="m17.5 17.5 1.5 1.5"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m5 19 1.5-1.5"/><path d="m17.5 6.5 1.5-1.5"/>',
@@ -112,26 +113,26 @@ if sunrise <= time_in_hours <= sunset:
         sky_overlay = f"linear-gradient(rgba(15, 23, 42, {opacity*0.4}), rgba(254, 215, 170, {opacity*0.6}))"
         sun_color = "rgba(251, 146, 60, 0.85)"
         solar_phase = "Morning"
-        solar_phase_icon = get_icon('sun', size=14, color='#fb923c')
+        solar_phase_icon = get_icon('sun', size=13, color='#fb923c')
     elif progress > 0.80:
         p_sunset = progress - 0.80
         opacity = 0.30 + (p_sunset * 2.0)
         sky_overlay = f"linear-gradient(rgba(30, 41, 59, {opacity*0.4}), rgba(254, 215, 170, {opacity*0.7}))"
         sun_color = "rgba(249, 115, 22, 0.85)"
         solar_phase = "Sunset"
-        solar_phase_icon = get_icon('sunset', size=14, color='#f97316')
+        solar_phase_icon = get_icon('sunset', size=13, color='#f97316')
     elif progress > 0.55:
         opacity = 0.22
         sky_overlay = f"linear-gradient(rgba(255, 255, 255, {opacity}), rgba(254, 243, 199, {opacity + 0.1}))"
         sun_color = "rgba(252, 211, 77, 0.90)"
         solar_phase = "Afternoon"
-        solar_phase_icon = get_icon('sun', size=14, color='#f59e0b')
+        solar_phase_icon = get_icon('sun', size=13, color='#f59e0b')
     else:
         opacity = 0.18
         sky_overlay = f"linear-gradient(rgba(248, 250, 252, {opacity}), rgba(224, 242, 254, {opacity + 0.1}))"
         sun_color = "rgba(254, 240, 138, 0.95)"
         solar_phase = "Daylight"
-        solar_phase_icon = get_icon('sun', size=14, color='#eab308')
+        solar_phase_icon = get_icon('sun', size=13, color='#eab308')
         
     sun_orb_html = f"""
     <div style="
@@ -145,15 +146,17 @@ if sunrise <= time_in_hours <= sunset:
 else:
     sky_overlay = "linear-gradient(rgba(15, 23, 42, 0.85), rgba(30, 41, 59, 0.92))"
     solar_phase = "Night"
-    solar_phase_icon = get_icon('moon', size=14, color='#94a3b8')
+    solar_phase_icon = get_icon('moon', size=13, color='#94a3b8')
     sun_orb_html = ""
 
 # =========================================================================================
-# 4. REFINED FORMAL CSS STYLING (INDUSTRIAL / SCIENTIFIC STANDARDS)
+# 4. REFINED FORMAL CSS STYLING & COMPACT TYPOGRAPHY
 # =========================================================================================
 st.markdown(f"""
 <style>
-    * {{ font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Inter', Roboto, Helvetica, Arial, sans-serif !important; }}
+    * {{
+        font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif !important;
+    }}
     
     .stApp, [data-testid="stHeader"] {{
         background-color: transparent !important;
@@ -168,9 +171,9 @@ st.markdown(f"""
     }}
 
     [data-testid="stAppViewBlockContainer"], .main .block-container {{
-        max-width: 1650px !important;
-        padding-top: 1.2rem !important;
-        padding-bottom: 2.5rem !important;
+        max-width: 1600px !important;
+        padding-top: 1.0rem !important;
+        padding-bottom: 2.2rem !important;
     }}
 
     /* Professional Icon System Alignment */
@@ -178,7 +181,7 @@ st.markdown(f"""
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        vertical-align: -0.18em;
+        vertical-align: -0.15em;
         line-height: 0;
     }}
     .ui-icon svg {{
@@ -187,8 +190,8 @@ st.markdown(f"""
 
     /* Status Indicator Dots */
     .status-dot {{
-        width: 8px;
-        height: 8px;
+        width: 7px;
+        height: 7px;
         border-radius: 50%;
         display: inline-block;
         flex-shrink: 0;
@@ -196,69 +199,70 @@ st.markdown(f"""
     }}
     .status-dot.green {{
         background-color: #10b981;
-        box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25);
+        box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.20);
     }}
     .status-dot.amber {{
         background-color: #f59e0b;
-        box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25);
+        box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.20);
     }}
     .status-dot.red {{
         background-color: #ef4444;
-        box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.25);
+        box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.20);
     }}
 
-    /* Header Bar */
+    /* Header Bar: Refined, Compact & Restrained */
     .header-bar {{
         background: rgba(255, 255, 255, 0.95);
         backdrop-filter: blur(16px);
-        border-radius: 16px;
-        padding: 16px 24px;
+        border-radius: 14px;
+        padding: 13px 20px;
         border: 1px solid rgba(255, 255, 255, 0.9);
-        box-shadow: 0 6px 20px rgba(15, 23, 42, 0.05);
-        margin-bottom: 20px;
+        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+        margin-bottom: 16px;
         display: flex;
         justify-content: space-between;
         align-items: center;
         flex-wrap: wrap;
-        gap: 16px;
+        gap: 12px;
     }}
     .header-title-box {{ display: flex; flex-direction: column; }}
     .header-main-title {{
-        font-size: 24px;
-        font-weight: 800;
+        font-size: 21px;
+        font-weight: 700;
         color: #0f172a;
         display: flex;
         align-items: center;
-        gap: 10px;
-        letter-spacing: 0.8px;
+        gap: 8px;
+        letter-spacing: 0.3px;
+        line-height: 1.2;
     }}
     .header-subtitle {{
-        font-size: 13px;
+        font-size: 11.5px;
         color: #64748b;
-        font-weight: 600;
-        margin-top: 3px;
-        letter-spacing: 0.3px;
+        font-weight: 400;
+        margin-top: 2px;
+        letter-spacing: 0.2px;
     }}
 
     .header-badges {{
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 7px;
         flex-wrap: wrap;
     }}
     .header-pill {{
         background: rgba(241, 245, 249, 0.85);
         border: 1px solid rgba(226, 232, 240, 0.9);
-        border-radius: 30px;
-        padding: 5px 13px;
-        font-size: 13px;
-        font-weight: 600;
-        color: #1e293b;
+        border-radius: 24px;
+        padding: 4px 10px;
+        font-size: 11.5px;
+        font-weight: 500;
+        color: #334155;
         display: inline-flex;
         align-items: center;
-        gap: 6px;
+        gap: 5px;
     }}
-    .header-pill-val {{ font-weight: 700; color: #0f172a; }}
+    .header-pill-val {{ font-weight: 600; color: #0f172a; }}
     .header-pill.status-green {{ background: rgba(236, 253, 245, 0.9); border-color: rgba(167, 243, 208, 0.9); color: #047857; }}
     .header-pill.status-red {{ background: rgba(254, 242, 242, 0.9); border-color: rgba(254, 202, 202, 0.9); color: #b91c1c; }}
     .header-pill.status-amber {{ background: rgba(254, 243, 199, 0.9); border-color: rgba(253, 230, 138, 0.9); color: #b45309; }}
@@ -267,18 +271,18 @@ st.markdown(f"""
     .glass-card {{
         background: rgba(255, 255, 255, 0.94);
         backdrop-filter: blur(14px);
-        border-radius: 16px;
-        padding: 18px 20px;
+        border-radius: 14px;
+        padding: 15px 17px;
         border: 1px solid rgba(255, 255, 255, 0.9);
-        box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04);
-        margin-bottom: 18px;
+        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.03);
+        margin-bottom: 14px;
     }}
     .card-heading {{
-        font-size: 13.5px;
-        font-weight: 700;
-        color: #0f172a;
-        margin-bottom: 14px;
-        padding-bottom: 8px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 12px;
+        padding-bottom: 6px;
         border-bottom: 1px solid #f1f5f9;
         display: flex;
         justify-content: space-between;
@@ -289,198 +293,232 @@ st.markdown(f"""
     .card-heading span {{
         display: inline-flex;
         align-items: center;
-        gap: 8px;
+        gap: 6px;
     }}
 
-    /* Hero Power Card */
+    /* Hero Power Card: Clean & Proportionate */
     .hero-power-card {{
-        background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(254, 243, 199, 0.45));
-        border: 1.5px solid rgba(245, 158, 11, 0.35);
-        border-radius: 16px;
-        padding: 22px 20px;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(254, 243, 199, 0.40));
+        border: 1.5px solid rgba(245, 158, 11, 0.30);
+        border-radius: 14px;
+        padding: 18px 16px;
         text-align: center;
-        box-shadow: 0 8px 24px rgba(245, 158, 11, 0.08);
-        margin-bottom: 16px;
+        box-shadow: 0 6px 18px rgba(245, 158, 11, 0.06);
+        margin-bottom: 14px;
     }}
     .hero-title {{
-        font-size: 12.5px;
-        font-weight: 700;
+        font-size: 11px;
+        font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: 0.8px;
+        letter-spacing: 0.7px;
         color: #b45309;
         display: inline-flex;
         align-items: center;
-        gap: 6px;
+        gap: 5px;
     }}
     .hero-val {{
-        font-size: 46px;
-        font-weight: 800;
+        font-size: 38px;
+        font-weight: 700;
         color: #0f172a;
-        margin: 6px 0;
-        font-family: 'Segoe UI', Tahoma, sans-serif !important;
+        margin: 4px 0;
         letter-spacing: -0.5px;
+        line-height: 1.1;
     }}
     .hero-unit {{
-        font-size: 22px;
-        font-weight: 600;
+        font-size: 18px;
+        font-weight: 500;
         color: #d97706;
-        margin-left: 4px;
+        margin-left: 3px;
     }}
     .hero-sub {{
-        font-size: 12.5px;
+        font-size: 11px;
         color: #64748b;
-        font-weight: 600;
+        font-weight: 400;
+        margin-top: 2px;
     }}
 
     /* KPI Grid */
-    .kpi-grid {{ display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }}
+    .kpi-grid {{ display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }}
     .kpi-item {{
         background: rgba(248, 250, 252, 0.85);
         border: 1px solid rgba(226, 232, 240, 0.85);
-        border-radius: 12px;
-        padding: 12px 14px;
+        border-radius: 10px;
+        padding: 10px 12px;
         text-align: left;
     }}
     .kpi-item-title {{
-        font-size: 12px;
-        font-weight: 600;
+        font-size: 11px;
+        font-weight: 500;
         color: #64748b;
-        margin-bottom: 4px;
+        margin-bottom: 3px;
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: 5px;
     }}
-    .kpi-item-val {{ font-size: 22px; font-weight: 700; color: #0f172a; }}
-    .kpi-item-unit {{ font-size: 13px; font-weight: 600; color: #64748b; }}
+    .kpi-item-val {{
+        font-size: 21px;
+        font-weight: 600;
+        color: #0f172a;
+        line-height: 1.2;
+    }}
+    .kpi-item-unit {{
+        font-size: 11px;
+        font-weight: 400;
+        color: #64748b;
+        margin-left: 2px;
+    }}
 
     /* Status Items */
     .status-row {{
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 9px 0;
+        padding: 7px 0;
         border-bottom: 1px solid #f1f5f9;
-        font-size: 13px;
+        font-size: 11.5px;
     }}
     .status-row:last-child {{ border-bottom: none; }}
     .status-label {{
         color: #475569;
-        font-weight: 600;
-        display: inline-flex;
-        align-items: center;
-        gap: 7px;
-    }}
-    .status-badge {{
-        font-weight: 700;
+        font-weight: 500;
         display: inline-flex;
         align-items: center;
         gap: 6px;
     }}
+    .status-badge {{
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }}
 
     /* Solar Conditions Meter */
     .scale-bar {{
-        height: 8px;
+        height: 7px;
         border-radius: 6px;
         background: linear-gradient(90deg, #93c5fd 0%, #fde047 50%, #f97316 100%);
         position: relative;
-        margin: 16px 0 10px 0;
+        margin: 14px 0 8px 0;
     }}
     .scale-pointer {{
         position: absolute;
-        top: -5px;
-        width: 18px;
-        height: 18px;
+        top: -4px;
+        width: 15px;
+        height: 15px;
         background: #0f172a;
-        border: 2.5px solid #ffffff;
+        border: 2px solid #ffffff;
         border-radius: 50%;
         transform: translateX(-50%);
-        box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+        box-shadow: 0 1px 5px rgba(0,0,0,0.25);
         transition: left 0.5s ease;
     }}
     .scale-labels {{
         display: flex;
         justify-content: space-between;
-        font-size: 11.5px;
-        font-weight: 700;
+        font-size: 10.5px;
+        font-weight: 500;
         color: #64748b;
     }}
 
     /* Event Log List */
     .event-log-container {{
-        max-height: 170px;
+        max-height: 160px;
         overflow-y: auto;
         padding-right: 4px;
     }}
     .event-entry {{
-        font-size: 12px;
-        padding: 8px 10px;
-        border-radius: 8px;
-        margin-bottom: 6px;
+        font-size: 11px;
+        padding: 6px 9px;
+        border-radius: 6px;
+        margin-bottom: 5px;
         display: flex;
         justify-content: space-between;
         align-items: center;
         background: rgba(248, 250, 252, 0.9);
         border-left: 3px solid #cbd5e1;
-        gap: 8px;
+        gap: 6px;
     }}
     .event-entry.info {{ border-left-color: #3b82f6; }}
-    .event-entry.warning {{ border-left-color: #f59e0b; background: rgba(254, 243, 199, 0.4); }}
-    .event-entry.error {{ border-left-color: #ef4444; background: rgba(254, 242, 242, 0.4); }}
+    .event-entry.warning {{ border-left-color: #f59e0b; background: rgba(254, 243, 199, 0.35); }}
+    .event-entry.error {{ border-left-color: #ef4444; background: rgba(254, 242, 242, 0.35); }}
 
     /* Clean Timeframe Radio */
     div[data-testid="stRadio"] {{
         display: flex !important;
         justify-content: center !important;
-        margin-bottom: 12px;
+        margin-bottom: 10px;
     }}
     div[role="radiogroup"] {{
         display: inline-flex !important;
         justify-content: center !important;
         align-items: center !important;
         background: rgba(255, 255, 255, 0.95) !important;
-        padding: 5px 12px !important;
-        border-radius: 50px !important;
+        padding: 4px 10px !important;
+        border-radius: 40px !important;
         border: 1px solid rgba(226, 232, 240, 0.9) !important;
-        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04) !important;
-        gap: 4px;
+        box-shadow: 0 3px 10px rgba(15, 23, 42, 0.03) !important;
+        gap: 3px;
     }}
     div[role="radiogroup"] label {{
-        padding: 4px 10px !important;
-        border-radius: 20px !important;
+        padding: 3px 8px !important;
+        border-radius: 16px !important;
         margin: 0 !important;
     }}
     div[role="radiogroup"] label p {{
-        font-size: 13px !important;
-        font-weight: 700 !important;
-        color: #1e293b !important;
+        font-size: 11.5px !important;
+        font-weight: 500 !important;
+        color: #334155 !important;
     }}
 
     /* Charts */
     div[data-testid="stVegaLiteChart"], div[data-testid="stArrowVegaLiteChart"] {{
         background-color: #ffffff !important;
-        border-radius: 12px !important;
-        padding: 10px !important;
-        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.03) !important;
+        border-radius: 10px !important;
+        padding: 8px !important;
+        box-shadow: 0 3px 10px rgba(15, 23, 42, 0.025) !important;
         border: 1px solid rgba(226, 232, 240, 0.85) !important;
     }}
     div[data-testid="stVegaLiteChart"] summary, div[data-testid="stArrowVegaLiteChart"] summary {{ display: none !important; }}
 
-    h4, h5 {{
+    h4 {{
         color: #0f172a !important;
-        font-weight: 700 !important;
-        margin-top: 10px !important;
-        margin-bottom: 6px !important;
+        font-size: 14px !important;
+        font-weight: 600 !important;
+        margin-top: 8px !important;
+        margin-bottom: 4px !important;
+        letter-spacing: 0.2px;
+    }}
+    h5 {{
+        color: #334155 !important;
+        font-size: 12px !important;
+        font-weight: 600 !important;
+        margin-top: 6px !important;
+        margin-bottom: 3px !important;
     }}
 
-    /* Download Button Professional Dark Styling */
+    /* Table Typography */
+    div[data-testid="stDataFrame"] * {{
+        font-size: 11px !important;
+    }}
+
+    /* Sidebar Refinements */
+    div[data-testid="stSidebar"] label, div[data-testid="stSidebar"] p {{
+        font-size: 12px !important;
+    }}
+    div[data-testid="stSidebar"] h3 {{
+        font-size: 13px !important;
+        font-weight: 600 !important;
+    }}
+
+    /* Download Button Compact Dark Styling */
     div[data-testid="stDownloadButton"] button {{
         background-color: #0f172a !important;
         color: #ffffff !important;
-        border-radius: 8px !important;
-        font-weight: 600 !important;
+        border-radius: 7px !important;
+        font-weight: 500 !important;
         border: 1px solid #1e293b !important;
-        padding: 8px 16px !important;
-        font-size: 13px !important;
+        padding: 6px 14px !important;
+        font-size: 12px !important;
         transition: background 0.2s ease !important;
     }}
     div[data-testid="stDownloadButton"] button:hover {{
@@ -687,11 +725,11 @@ except Exception as e:
 # =========================================================================================
 # 7. SIDEBAR CONTROLS & DATA MANAGEMENT
 # =========================================================================================
-st.sidebar.markdown(f"### {get_icon('sliders', size=16, color='#64748b')} Controls", unsafe_allow_html=True)
+st.sidebar.markdown(f"### {get_icon('sliders', size=14, color='#64748b')} Controls", unsafe_allow_html=True)
 live_update = st.sidebar.checkbox("Live Update", value=True, help="Toggle periodic page refresh for live data streaming.")
 
 st.sidebar.markdown("---")
-st.sidebar.markdown(f"### {get_icon('database', size=16, color='#64748b')} Data Management", unsafe_allow_html=True)
+st.sidebar.markdown(f"### {get_icon('database', size=14, color='#64748b')} Data Management", unsafe_allow_html=True)
 confirm_reset = st.sidebar.checkbox("Confirm data reset", value=False, help="Must check before clearing data.")
 if st.sidebar.button("Clear All Data & Restart", disabled=not confirm_reset):
     if os.path.exists(PERSISTENCE_FILE):
@@ -754,15 +792,15 @@ mqtt_badge_txt = "Connected" if solar_data['mqtt_connected'] else "Disconnected"
 st.markdown(f"""
 <div class="header-bar">
     <div class="header-title-box">
-        <div class="header-main-title">{get_icon('sun', size=24, color='#ea580c', stroke_width=2.2)} SOLAR POWER MONITORING</div>
+        <div class="header-main-title">{get_icon('sun', size=20, color='#ea580c', stroke_width=2.0)} SOLAR POWER MONITORING</div>
         <div class="header-subtitle">Clean Energy · Real-time Data · A Greener Tomorrow</div>
     </div>
     <div class="header-badges">
-        <div class="header-pill">{get_icon('calendar', size=14, color='#64748b')} <span class="header-pill-val">{jalali_date_str}</span> <span style="font-size:11px; opacity:0.75;">({gregorian_date_str})</span></div>
-        <div class="header-pill">{get_icon('clock', size=14, color='#64748b')} <span class="header-pill-val">{time_str}</span></div>
-        <div class="header-pill">{get_icon('cloud-sun', size=14, color='#0284c7')} <span class="header-pill-val">{tehran_temp}</span> <span style="font-size:11px; opacity:0.75;">Tehran</span></div>
+        <div class="header-pill">{get_icon('calendar', size=13, color='#64748b')} <span class="header-pill-val">{jalali_date_str}</span> <span style="font-size:10px; opacity:0.75;">({gregorian_date_str})</span></div>
+        <div class="header-pill">{get_icon('clock', size=13, color='#64748b')} <span class="header-pill-val">{time_str}</span></div>
+        <div class="header-pill">{get_icon('cloud-sun', size=13, color='#0284c7')} <span class="header-pill-val">{tehran_temp}</span> <span style="font-size:10px; opacity:0.75;">Tehran</span></div>
         <div class="header-pill {mqtt_badge_cls}"><span class="status-dot {'green' if solar_data['mqtt_connected'] else 'red'}"></span> {mqtt_badge_txt}</div>
-        <div class="header-pill">{get_icon('activity', size=14, color='#64748b')} <span class="header-pill-val">{freshness_label}</span></div>
+        <div class="header-pill">{get_icon('activity', size=13, color='#64748b')} <span class="header-pill-val">{freshness_label}</span></div>
         <div class="header-pill">{solar_phase_icon} <span class="header-pill-val">{solar_phase}</span></div>
     </div>
 </div>
@@ -777,7 +815,7 @@ col_left, col_center, col_right = st.columns([1.1, 2.3, 1.2], gap="medium")
 # ZONE 1 (LEFT): MAIN KPI & SYSTEM METRICS
 # -----------------------------------------------------------------------------------------
 with col_left:
-    # 1. Hero KPI: Current Power (Authoritative Priority)
+    # 1. Hero KPI: Current Power (Authoritative Priority, Balanced Typography)
     raw_power_mw = solar_data['power']
     if raw_power_mw >= 1000:
         power_hero_val = f"{raw_power_mw / 1000.0:.2f}"
@@ -788,7 +826,7 @@ with col_left:
 
     st.markdown(f"""
     <div class="hero-power-card">
-        <div class="hero-title">{get_icon('zap', size=15, color='#ea580c', stroke_width=2.2)} CURRENT GENERATED POWER</div>
+        <div class="hero-title">{get_icon('zap', size=13, color='#ea580c', stroke_width=2.0)} CURRENT GENERATED POWER</div>
         <div class="hero-val">{power_hero_val}<span class="hero-unit">{power_hero_unit}</span></div>
         <div class="hero-sub">Live Photovoltaic Power Output</div>
     </div>
@@ -803,9 +841,11 @@ with col_left:
     
     total_mwh = solar_data['total_energy_mWh']
     if total_mwh >= 1000:
-        energy_disp = f"{total_mwh / 1000.0:.2f} Wh"
+        energy_disp_val = f"{total_mwh / 1000.0:.2f}"
+        energy_disp_unit = "Wh"
     else:
-        energy_disp = f"{total_mwh:.1f} mWh"
+        energy_disp_val = f"{total_mwh:.1f}"
+        energy_disp_unit = "mWh"
 
     st.markdown(f"""
     <div class="glass-card">
@@ -814,28 +854,28 @@ with col_left:
         </div>
         <div class="kpi-grid">
             <div class="kpi-item">
-                <div class="kpi-item-title">{get_icon('gauge', size=14, color='#2563eb')} Voltage</div>
+                <div class="kpi-item-title">{get_icon('gauge', size=13, color='#2563eb')} Voltage</div>
                 <div class="kpi-item-val">{volt_val:.2f} <span class="kpi-item-unit">V</span></div>
             </div>
             <div class="kpi-item">
-                <div class="kpi-item-title">{get_icon('activity', size=14, color='#d97706')} Current</div>
+                <div class="kpi-item-title">{get_icon('activity', size=13, color='#d97706')} Current</div>
                 <div class="kpi-item-val">{curr_val:.1f} <span class="kpi-item-unit">mA</span></div>
             </div>
             <div class="kpi-item">
-                <div class="kpi-item-title">{get_icon('sun', size=14, color='#f59e0b')} Irradiance</div>
+                <div class="kpi-item-title">{get_icon('sun', size=13, color='#f59e0b')} Irradiance</div>
                 <div class="kpi-item-val">{irr_val:.1f} <span class="kpi-item-unit">W/m²</span></div>
             </div>
             <div class="kpi-item">
-                <div class="kpi-item-title">{get_icon('sun-dim', size=14, color='#eab308')} Illuminance</div>
+                <div class="kpi-item-title">{get_icon('sun-dim', size=13, color='#eab308')} Illuminance</div>
                 <div class="kpi-item-val">{lux_val:.1f} <span class="kpi-item-unit">Lux</span></div>
             </div>
             <div class="kpi-item">
-                <div class="kpi-item-title">{get_icon('thermometer', size=14, color='#e11d48')} Panel Temp</div>
+                <div class="kpi-item-title">{get_icon('thermometer', size=13, color='#e11d48')} Panel Temp</div>
                 <div class="kpi-item-val">{temp_val:.1f} <span class="kpi-item-unit">°C</span></div>
             </div>
             <div class="kpi-item">
-                <div class="kpi-item-title">{get_icon('battery-charging', size=14, color='#059669')} Total Energy</div>
-                <div class="kpi-item-val">{energy_disp}</div>
+                <div class="kpi-item-title">{get_icon('battery-charging', size=13, color='#059669')} Total Energy</div>
+                <div class="kpi-item-val">{energy_disp_val} <span class="kpi-item-unit">{energy_disp_unit}</span></div>
             </div>
         </div>
     </div>
@@ -887,7 +927,7 @@ with col_center:
                 span_str = f"{int(span_s // 60)}m {int(span_s % 60)}s"
             else:
                 span_str = f"{int(span_s)}s"
-            st.caption(f"Showing available window: **{span_str}** ({len(df_chart)} records)")
+            st.caption(f"Available window: **{span_str}** ({len(df_chart)} records)")
     else:
         df_chart = pd.DataFrame()
 
@@ -941,7 +981,7 @@ with col_right:
     st.markdown(f"""
     <div class="glass-card">
         <div class="card-heading">
-            <span>{get_icon('shield-check', size=15, color='#0f172a')} SYSTEM STATUS</span>
+            <span>{get_icon('shield-check', size=14, color='#0f172a')} SYSTEM STATUS</span>
         </div>
         <div class="status-row">
             <span class="status-label">Overall Health</span>
@@ -985,9 +1025,9 @@ with col_right:
     st.markdown(f"""
     <div class="glass-card">
         <div class="card-heading">
-            <span>{get_icon('sun', size=15, color='#ea580c')} SOLAR CONDITIONS</span>
+            <span>{get_icon('sun', size=14, color='#ea580c')} SOLAR CONDITIONS</span>
         </div>
-        <div style="font-size: 13px; color: #475569; margin-bottom: 8px;">
+        <div style="font-size: 11.5px; color: #475569; margin-bottom: 7px;">
             Solar Intensity: <b style="color: #0f172a;">{cond_label}</b> ({current_irr:.1f} W/m²)
         </div>
         <div class="scale-bar">
@@ -1008,14 +1048,14 @@ with col_right:
             lvl = ev.get('level', 'info')
             t = ev.get('time', '')
             txt = ev.get('text', '')
-            event_html_items += f'<div class="event-entry {lvl}"><span style="color:#0f172a; font-weight:600;">{txt}</span><span style="color:#94a3b8; font-size:11px; margin-left:auto; white-space:nowrap; padding-left:8px;">{t}</span></div>'
+            event_html_items += f'<div class="event-entry {lvl}"><span style="color:#0f172a; font-weight:500;">{txt}</span><span style="color:#94a3b8; font-size:10px; margin-left:auto; white-space:nowrap; padding-left:8px;">{t}</span></div>'
     else:
-        event_html_items = '<div style="font-size:12px; color:#64748b; padding:4px 0;">No recent events recorded.</div>'
+        event_html_items = '<div style="font-size:11px; color:#64748b; padding:3px 0;">No recent events recorded.</div>'
 
     st.markdown(f"""
     <div class="glass-card">
         <div class="card-heading">
-            <span>{get_icon('bell', size=15, color='#0f172a')} RECENT EVENTS</span>
+            <span>{get_icon('bell', size=14, color='#0f172a')} RECENT EVENTS</span>
         </div>
         <div class="event-log-container">
             {event_html_items}
@@ -1065,7 +1105,7 @@ if solar_data['log_records']:
         'irradiance_W_m2': 'Irradiance (W/m²)'
     }
     df_display = df_display.rename(columns=clean_col_names)
-    st.dataframe(df_display, use_container_width=True, height=220)
+    st.dataframe(df_display, use_container_width=True, height=210)
 else:
     st.info("Waiting for incoming telemetry packets to populate table...")
 
