@@ -12,8 +12,6 @@ Backend: Robust Paho MQTT Engine with Singleton Data Cache
 """
 
 import streamlit as st
-import altair as alt
-import plotly.graph_objects as go
 import paho.mqtt
 import paho.mqtt.client as mqtt
 import pandas as pd
@@ -258,53 +256,6 @@ def calculate_solar_variability(df_window: pd.DataFrame) -> dict:
     else:
         return {'label': 'High Variation', 'color': '#ef4444', 'cv': cv}
 
-def build_weather_bands(t_min, t_max, hourly_schedule, default_condition):
-    """
-    Builds contiguous time interval bands overlapping the active window [t_min, t_max].
-    Used to render subtle atmospheric sky bands behind the main solar curves.
-    """
-    if not hourly_schedule:
-        if default_condition:
-            return pd.DataFrame([{'start': t_min, 'end': t_max, 'condition': default_condition}])
-        return pd.DataFrame()
-    
-    blocks = []
-    tz = t_min.tzinfo
-    for entry in hourly_schedule:
-        try:
-            t_block_start = pd.to_datetime(entry['time_str'])
-            if tz is not None:
-                if t_block_start.tzinfo is None:
-                    t_block_start = t_block_start.tz_localize(tz)
-                else:
-                    t_block_start = t_block_start.tz_convert(tz)
-            t_block_end = t_block_start + timedelta(hours=1)
-            
-            overlap_start = max(t_min, t_block_start)
-            overlap_end = min(t_max, t_block_end)
-            if overlap_end > overlap_start:
-                cond = entry.get('condition', default_condition)
-                blocks.append({
-                    'start': overlap_start,
-                    'end': overlap_end,
-                    'condition': cond
-                })
-        except Exception:
-            continue
-            
-    if not blocks:
-        return pd.DataFrame()
-        
-    merged = []
-    cur = blocks[0]
-    for b in blocks[1:]:
-        if b['condition'] == cur['condition'] and b['start'] <= cur['end']:
-            cur['end'] = max(cur['end'], b['end'])
-        else:
-            merged.append(cur)
-            cur = b
-    merged.append(cur)
-    return pd.DataFrame(merged)
 
 def calculate_solar_elevation(lat=35.6892, lon=51.3890, dt=None):
     """Calculates astronomical solar altitude angle for accurate ambient illumination."""
@@ -1250,19 +1201,6 @@ if not df_raw.empty and 'dt' in df_raw.columns:
         df_plot = df_raw.copy()
         span_caption_text = f"Window: Full Session History ({len(df_plot)} points recorded)"
 
-# Attach real Open-Meteo sky condition to df_plot if available
-if not df_plot.empty and weather_info['available']:
-    hour_to_cond = {}
-    for entry in weather_info['hourly_schedule']:
-        try:
-            h = int(entry['time_str'].split('T')[1].split(':')[0])
-            hour_to_cond[h] = entry['condition']
-        except Exception:
-            pass
-    df_plot['sky_condition'] = df_plot['dt'].apply(lambda d: hour_to_cond.get(d.hour, weather_info['sky_condition']))
-elif not df_plot.empty:
-    df_plot['sky_condition'] = None
-
 # Calculate Solar Irradiance Variability on active analytical window
 variability_info = calculate_solar_variability(df_plot)
 
@@ -1410,129 +1348,17 @@ with col_center:
 
     has_chart_data = not df_plot.empty and len(df_plot) >= 2
 
-    # 2. Main Enclosed Container: Dedicated Solar Irradiance Chart with Interactive Zoom/Pan/Fullscreen
+    # 2. Main Enclosed Container: Solar Irradiance Chart (Visually Consistent with Current (mA))
     with st.container(border=True):
-        if weather_info['available']:
-            weather_badge_html = f'<span style="color: #64748b; font-size: 10.5px; background: rgba(241, 245, 249, 0.85); padding: 2px 8px; border-radius: 12px; border: 1px solid rgba(226, 232, 240, 0.85); font-weight: 500;">{get_icon(sky_icon_name, size=12, color="#64748b")} Open-Meteo Bands</span>'
-        else:
-            weather_badge_html = '<span style="color: #94a3b8; font-size: 10.5px; background: rgba(241, 245, 249, 0.85); padding: 2px 8px; border-radius: 12px; border: 1px solid rgba(226, 232, 240, 0.85); font-weight: 500;">Weather history unavailable</span>'
-
         st.markdown(f"""
         <div class="chart-card-header">
-            <span class="chart-header-title">{get_icon('sun', size=16, color='#ea580c')} SOLAR IRRADIANCE</span>
-            <div style="display: flex; align-items: center; gap: 10px; font-size: 11px;">
-                <span style="color: #ea580c; font-weight: 600;">● Irradiance (W/m²)</span>
-                <span style="color: {variability_info['color']}; font-weight: 600;">● {variability_info['label']}</span>
-                {weather_badge_html}
-            </div>
+            <span class="chart-header-title">{get_icon('sun', size=15, color='#ea580c')} Solar Irradiance (W/m²)</span>
         </div>
         """, unsafe_allow_html=True)
         
         if has_chart_data:
-            t_min = df_plot['dt'].min()
-            t_max = df_plot['dt'].max()
-            time_fmt = '%H:%M:%S' if selected_timeframe in ["10 Min", "1 Hour"] else '%H:%M'
-            
-            fig_main = go.Figure()
-            
-            # 1. Atmospheric Sky Condition Background Bands (Real Open-Meteo Data)
-            if weather_info['available'] and weather_info['hourly_schedule']:
-                bands_df = build_weather_bands(t_min, t_max, weather_info['hourly_schedule'], weather_info['sky_condition'])
-                for _, b_row in bands_df.iterrows():
-                    c_name = str(b_row['condition'])
-                    if 'clear' in c_name.lower():
-                        band_fill = 'rgba(254, 240, 138, 0.16)'
-                        band_lbl = "Clear"
-                    elif 'partly' in c_name.lower():
-                        band_fill = 'rgba(186, 230, 253, 0.16)'
-                        band_lbl = "Partly Cloudy"
-                    else:
-                        band_fill = 'rgba(203, 213, 225, 0.18)'
-                        band_lbl = "Cloudy"
-                        
-                    fig_main.add_vrect(
-                        x0=b_row['start'],
-                        x1=b_row['end'],
-                        fillcolor=band_fill,
-                        layer='below',
-                        line_width=0,
-                        annotation_text=band_lbl,
-                        annotation_position="top left",
-                        annotation=dict(font_size=9.5, font_color="#94a3b8", font_family="Inter, sans-serif")
-                    )
-            
-            # 2. Dominant Solar Irradiance Curve (Single Axis, Real Units, Subtle Solar Area Fill)
-            customdata_rows = []
-            for _, r in df_plot.iterrows():
-                sky_val = r.get('sky_condition') or 'N/A'
-                customdata_rows.append([r['time_display'], sky_val, variability_info['label']])
-            
-            fig_main.add_trace(go.Scatter(
-                x=df_plot['dt'],
-                y=df_plot['irradiance_W_m2'],
-                mode='lines',
-                name='Solar Irradiance',
-                line=dict(color='#ea580c', width=2.4),
-                fill='tozeroy',
-                fillcolor='rgba(234, 88, 12, 0.06)',
-                customdata=customdata_rows,
-                hovertemplate=(
-                    '<b>%{customdata[0]}</b><br>'
-                    'Irradiance: <b>%{y:.1f} W/m²</b><br>'
-                    + ('Sky: <b>%{customdata[1]}</b><br>' if weather_info['available'] and weather_info['sky_condition'] else '')
-                    + 'Variability: %{customdata[2]}<extra></extra>'
-                )
-            ))
-            
-            # 3. High-Clarity Industrial Layout with Dynamic Autoscale & Responsive Proportions
-            fig_main.update_layout(
-                height=295,
-                margin=dict(l=45, r=20, t=25, b=28),
-                paper_bgcolor='rgba(0,0,0,0)',
-                plot_bgcolor='rgba(0,0,0,0)',
-                hovermode='x',
-                dragmode='zoom',
-                xaxis=dict(
-                    showgrid=True,
-                    gridcolor='rgba(226, 232, 240, 0.60)',
-                    tickformat=time_fmt,
-                    tickfont=dict(family='Inter, sans-serif', size=10, color='#64748b'),
-                    zeroline=False
-                ),
-                yaxis=dict(
-                    title=dict(
-                        text='Irradiance (W/m²)',
-                        font=dict(family='Inter, sans-serif', size=11, color='#ea580c', weight=600)
-                    ),
-                    showgrid=True,
-                    gridcolor='rgba(226, 232, 240, 0.60)',
-                    tickfont=dict(family='Inter, sans-serif', size=10, color='#64748b'),
-                    zeroline=False,
-                    autorange=True
-                ),
-                showlegend=False
-            )
-            
-            # 4. Interactive Toolbar: Zoom, Pan, Autoscale, Reset View, Download
-            plotly_config = {
-                'responsive': True,
-                'scrollZoom': True,
-                'displayModeBar': True,
-                'displaylogo': False,
-                'modeBarButtonsToRemove': [
-                    'lasso2d', 'select2d', 'toggleSpikelines',
-                    'hoverClosestCartesian', 'hoverCompareCartesian'
-                ],
-                'toImageButtonOptions': {
-                    'format': 'png',
-                    'filename': f'solar_irradiance_{selected_timeframe.lower().replace(" ", "_")}',
-                    'height': 600,
-                    'width': 1200,
-                    'scale': 2
-                }
-            }
-            
-            st.plotly_chart(fig_main, use_container_width=True, config=plotly_config)
+            chart_main = df_plot[['time_display', 'irradiance_W_m2']].rename(columns={'irradiance_W_m2': 'Irradiance (W/m²)'}).set_index('time_display')
+            st.line_chart(chart_main, color=["#ea580c"], height=240, use_container_width=True)
         else:
             st.markdown(f"""
             <div class="chart-empty-state main-empty">
