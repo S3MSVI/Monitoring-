@@ -7,6 +7,7 @@ Advanced Real-Time Solar Photovoltaic Data Acquisition & Analytics Dashboard
 Style: Professional Industrial / Scientific / High Clarity & Balanced Scale
 Standardized Units: Power in W, Energy in kWh everywhere in UI and Exports
 Icon System: Unified Lucide-Style SVG (Dependency-Free, Stroke-Based)
+Atmosphere: Dynamic Sun Orb & Solar Trajectory Synchronized with Tehran Ephemeris
 Backend: Robust Paho MQTT Engine with Singleton Data Cache
 =========================================================================================
 """
@@ -101,7 +102,7 @@ def format_power_w(val_w: float) -> str:
         return f"{val_w:.4f}"
 
 # =========================================================================================
-# 4. TEHRAN EPHEMERIS, WEATHER & ASTRONOMICAL SOLAR ELEVATION
+# 4. TEHRAN EPHEMERIS, WEATHER & DYNAMIC SOLAR TRAJECTORY
 # =========================================================================================
 tehran_tz = pytz.timezone('Asia/Tehran')
 now_tehran = datetime.now(tehran_tz)
@@ -149,7 +150,14 @@ def calculate_solar_elevation(lat=35.6892, lon=51.3890, dt=None):
 
 solar_elev = calculate_solar_elevation(35.6892, 51.3890, now_tehran)
 
-if solar_elev > 10:
+# Dynamic Solar Trajectory & Atmospheric Sun Orb Geometry (Tehran Local Time)
+time_in_hours = now_tehran.hour + now_tehran.minute / 60.0 + now_tehran.second / 3600.0
+sunrise = 5.75  # ~05:45 Tehran
+sunset = 18.50   # ~18:30 Tehran
+day_length = sunset - sunrise
+
+if solar_elev > 10.0:
+    # Full Daylight Active
     solar_phase = "Daylight Active"
     solar_phase_icon = get_icon('sun', size=17, color='#ea580c')
     bg_gradient = "linear-gradient(145deg, #f8fafc 0%, #edf2f7 50%, #e2e8f0 100%)"
@@ -158,12 +166,41 @@ if solar_elev > 10:
     text_main = "#0f172a"
     text_sub = "#475569"
     text_muted = "#64748b"
-    sun_orb_html = """
-    <div style="position: fixed; top: -60px; right: 8%; width: 280px; height: 280px;
-                background: radial-gradient(circle, rgba(251, 146, 60, 0.16) 0%, rgba(254, 215, 170, 0.05) 55%, transparent 70%);
-                filter: blur(28px); pointer-events: none; z-index: -1;"></div>
-    """
-elif solar_elev > -5:
+    
+    # Sun coordinates on natural sky arc
+    progress = max(0.0, min(1.0, (time_in_hours - sunrise) / day_length))
+    sun_x = 8.0 + (84.0 * progress)  # 8% (left) to 92% (right)
+    sun_y = 78.0 - (56.0 * math.sin(math.pi * progress))  # 78% (low) to 22% (midday peak)
+    
+    if progress < 0.25:
+        # Morning Ascent: soft warm tones
+        orb_size = 180
+        orb_opacity = 0.55
+        center_color = "rgba(255, 251, 235, 0.95)"
+        mid_color = "rgba(254, 215, 170, 0.55)"
+        outer_color = "rgba(251, 146, 60, 0.22)"
+        glow_color = "rgba(251, 146, 60, 0.20)"
+    elif progress > 0.70:
+        # Late Afternoon: warmer amber
+        orb_size = 205
+        orb_opacity = 0.60
+        center_color = "rgba(254, 243, 199, 0.95)"
+        mid_color = "rgba(251, 191, 36, 0.55)"
+        outer_color = "rgba(245, 158, 11, 0.24)"
+        glow_color = "rgba(245, 158, 11, 0.22)"
+    else:
+        # Peak Midday: brightest radiant center
+        orb_size = 220
+        orb_opacity = 0.65
+        center_color = "rgba(255, 255, 255, 0.98)"
+        mid_color = "rgba(254, 240, 138, 0.65)"
+        outer_color = "rgba(251, 191, 36, 0.28)"
+        glow_color = "rgba(251, 191, 36, 0.24)"
+
+    sun_orb_html = f'''<div class="sun-atmosphere-orb" style="position: fixed; width: {orb_size}px; height: {orb_size}px; border-radius: 50%; background: radial-gradient(circle, {center_color} 0%, {mid_color} 38%, {outer_color} 68%, transparent 85%); box-shadow: 0 0 85px 35px {glow_color}; filter: blur(16px); left: {sun_x:.1f}%; top: {sun_y:.1f}%; transform: translate(-50%, -50%); z-index: 0; pointer-events: none; opacity: {orb_opacity:.2f}; transition: all 1.2s ease-out;"></div>'''
+
+elif solar_elev > -5.0:
+    # Twilight / Sunset
     solar_phase = "Twilight / Sunset"
     solar_phase_icon = get_icon('sunset', size=17, color='#f59e0b')
     bg_gradient = "linear-gradient(145deg, #1e1b4b 0%, #312e81 40%, #1e293b 100%)"
@@ -172,12 +209,34 @@ elif solar_elev > -5:
     text_main = "#0f172a"
     text_sub = "#475569"
     text_muted = "#64748b"
-    sun_orb_html = """
-    <div style="position: fixed; top: -40px; right: 10%; width: 260px; height: 260px;
-                background: radial-gradient(circle, rgba(245, 158, 11, 0.18) 0%, rgba(217, 119, 6, 0.06) 55%, transparent 70%);
-                filter: blur(28px); pointer-events: none; z-index: -1;"></div>
-    """
+    
+    if time_in_hours > 12.0:
+        # Sunset: low toward right horizon, deep peach/amber/orange
+        progress = max(0.0, min(1.0, (time_in_hours - 17.5) / 1.5))
+        sun_x = 84.0 + (10.0 * progress)
+        sun_y = 66.0 + (16.0 * progress)
+        orb_size = 230
+        orb_opacity = max(0.20, 0.65 - (progress * 0.35))
+        center_color = "rgba(254, 215, 170, 0.95)"
+        mid_color = "rgba(249, 115, 22, 0.60)"
+        outer_color = "rgba(217, 119, 6, 0.25)"
+        glow_color = "rgba(234, 88, 12, 0.28)"
+    else:
+        # Dawn / Early Sunrise: rising from left horizon
+        progress = max(0.0, min(1.0, (time_in_hours - 5.0) / 1.0))
+        sun_x = 6.0 + (8.0 * progress)
+        sun_y = 78.0 - (12.0 * progress)
+        orb_size = 190
+        orb_opacity = 0.45 + (progress * 0.20)
+        center_color = "rgba(254, 215, 170, 0.90)"
+        mid_color = "rgba(251, 146, 60, 0.50)"
+        outer_color = "rgba(249, 115, 22, 0.20)"
+        glow_color = "rgba(251, 146, 60, 0.20)"
+
+    sun_orb_html = f'''<div class="sun-atmosphere-orb" style="position: fixed; width: {orb_size}px; height: {orb_size}px; border-radius: 50%; background: radial-gradient(circle, {center_color} 0%, {mid_color} 38%, {outer_color} 68%, transparent 85%); box-shadow: 0 0 95px 40px {glow_color}; filter: blur(18px); left: {sun_x:.1f}%; top: {sun_y:.1f}%; transform: translate(-50%, -50%); z-index: 0; pointer-events: none; opacity: {orb_opacity:.2f}; transition: all 1.2s ease-out;"></div>'''
+
 else:
+    # Night Operational: Sun completely hidden
     solar_phase = "Night Operational"
     solar_phase_icon = get_icon('moon', size=17, color='#6366f1')
     bg_gradient = "linear-gradient(145deg, #090d16 0%, #0f172a 50%, #1e293b 100%)"
@@ -214,6 +273,19 @@ st.markdown(f"""
         padding-right: 2.0rem !important;
         max-width: 1680px !important;
         margin: 0 auto !important;
+        position: relative !important;
+        z-index: 2 !important;
+    }}
+
+    .header-bar,
+    .dashboard-card,
+    div[data-testid="stVerticalBlockBorderWrapper"],
+    .hero-power-card,
+    .snapshot-card,
+    .table-header-pill,
+    div[data-testid="stDataFrame"] {{
+        position: relative !important;
+        z-index: 2 !important;
     }}
 
     /* Global Icon Wrapper */
@@ -1029,7 +1101,6 @@ with col_left:
     """, unsafe_allow_html=True)
 
     # 3. Solar Production Status (Prominent, natural spacing)
-    # Calculate real today metrics
     if not df_raw.empty and 'dt' in df_raw.columns:
         t_max_all = df_raw['dt'].max()
         today_midnight = t_max_all.replace(hour=0, minute=0, second=0, microsecond=0)
