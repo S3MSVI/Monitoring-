@@ -1,17 +1,18 @@
 # -*- coding: utf-8 -*-
 """
 =========================================================================================
-SOLAR PHOTOVOLTAIC POWER MONITORING SYSTEM (S+2)
-Final Professional Scientific Instrumentation & Telemetry Analytics Dashboard
+SOLAR PHOTOVOLTAIC POWER MONITORING SYSTEM
+Professional Scientific Telemetry & Solar Radiation Instrumentation Dashboard
 =========================================================================================
-Primary Central Chart: Dedicated Solar Irradiance (W/m²) with Plotly & Real Weather Bands
+Primary Central Chart: Dedicated Solar Irradiance (W/m²) with Linear Trace & Real Weather Bands
+Hover Interaction: Unified X Hover (hovermode="x unified") with Timestamp & Atmospheric State
+ModeBar: Clean On-Hover ModeBar (displayModeBar="hover") with Zoom, Pan, Autoscale & Reset
 Secondary Grid (3x2): Voltage (V), Current (mA), Temp (°C), Illuminance (Lux), Power (W), Energy (kWh)
-Fullscreen Mode: Interactive Inspection with Persistent "Exit Fullscreen" Button
-Backend: Robust Paho MQTT (emqx.io with hivemq fallback) + Thread-Safe Singleton Cache
+Power KPI: Hero 40px Power (W) with Real 10-Minute Average Trend Indicator (↑ / ↓ / →)
+Grid & Styling: Subtle #f1f5f9 Grid Lines, zeroline=False, Compact Axis Margins
 Energy Integration: Riemann Sum with Negative Noise Immunity (effective_power = max(p, 0))
 Unit Parsing: Explicit Configurable Unit Setting (Zero Magnitude Guessing)
-Health States: System Normal | Waiting for Telemetry | Stale Telemetry | Disconnected
-Typography: Inter with Tabular Numerals (tabular-nums) for Scientific Alignment
+Typography: Standard Inter with Tabular Numerals (font-variant-numeric: tabular-nums)
 Ephemeris: Tehran Jalali & Gregorian, Astronomical Solar Altitude, Dynamic Ambient Sun Orb
 =========================================================================================
 """
@@ -28,6 +29,7 @@ import jdatetime
 import math
 import os
 import json
+import html
 
 # =========================================================================================
 # 1. PAGE CONFIGURATION & TIMEZONE SETUP
@@ -42,7 +44,7 @@ st.set_page_config(
 tehran_tz = pytz.timezone('Asia/Tehran')
 utc_tz = pytz.utc
 
-# Session state initialization for Fullscreen Inspection View
+# Session state initialization for Fullscreen Inspection View & Active Timeframe
 if 'chart_expanded' not in st.session_state:
     st.session_state['chart_expanded'] = False
 
@@ -80,7 +82,7 @@ def get_icon(name: str, size: int = 16, color: str = "currentColor") -> str:
     return icons.get(name, f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2"><circle cx="12" cy="12" r="8"/></svg>')
 
 # =========================================================================================
-# 3. EPHEMERIS & OPEN-METEO WEATHER ENGINE (15-MIN CACHE)
+# 3. EPHEMERIS & OPEN-METEO WEATHER ENGINE (15-MIN TTL CACHE)
 # =========================================================================================
 WMO_CODES = {
     0: ("Clear", "sun"),
@@ -736,7 +738,7 @@ with st.sidebar:
 @st.cache_resource
 def start_mqtt_client(broker: str, port: int, topic: str, fallback_host: str):
     """Initializes and runs the background MQTT listener with fallback support."""
-    client = mqtt.Client(client_id=f"SolarPV_S2_{int(time.time())}", clean_session=True)
+    client = mqtt.Client(client_id=f"SolarPV_Final_{int(time.time())}", clean_session=True)
 
     def on_connect(c, userdata, flags, rc):
         if rc == 0:
@@ -972,6 +974,33 @@ def format_energy_kwh(val_kwh: float) -> str:
 current_power_w = solar_data['power_w']
 current_energy_kwh = solar_data['total_energy_kwh']
 
+# Calculate real 10-minute average power trend without fabricating deltas
+power_trend_html = ""
+if not df_raw.empty and 'dt' in df_raw.columns and len(df_raw) >= 4:
+    t_latest = df_raw['dt'].max()
+    t_10m_prior = t_latest - timedelta(minutes=10)
+    df_prior_10m = df_raw[(df_raw['dt'] >= t_10m_prior) & (df_raw['dt'] < t_latest)]
+    if len(df_prior_10m) >= 2:
+        avg_p_10m = float(df_prior_10m['power_W'].mean())
+        if avg_p_10m > 0.02:  # Safe baseline threshold to prevent misleading % near zero
+            pct_change = ((current_power_w - avg_p_10m) / avg_p_10m) * 100.0
+            if pct_change > 0.5:
+                trend_sym = "↑"
+                trend_color = "#10b981"  # green
+                sign = "+"
+            elif pct_change < -0.5:
+                trend_sym = "↓"
+                trend_color = "#ef4444"  # red
+                sign = ""
+            else:
+                trend_sym = "→"
+                trend_color = "#64748b"  # neutral
+                sign = ""
+            power_trend_html = f'<div style="font-size: 11.5px; font-weight: 500; color: {trend_color}; margin-top: 4px; display: flex; align-items: center; gap: 4px;"><span style="font-weight: 700;">{trend_sym}</span> <span>{sign}{pct_change:.1f}% vs 10-min average</span></div>'
+
+# Adaptive trace class: standard go.Scatter by default, go.Scattergl only if points > 3000
+scatter_cls = go.Scattergl if (has_chart_data and len(df_plot) > 3000) else go.Scatter
+
 # =========================================================================================
 # FULLSCREEN / EXPANDED VIEW WITH PROMINENT EXIT BUTTON
 # =========================================================================================
@@ -1024,7 +1053,6 @@ if st.session_state['chart_expanded']:
                     else:
                         band_fill = 'rgba(203, 213, 225, 0.15)'
                     
-                    # Unobtrusive annotation only when useful
                     delta_m = (b_row['end'] - b_row['start']).total_seconds() / 60.0
                     ann_text = str(b_row['condition']) if delta_m >= 15 else ""
 
@@ -1035,51 +1063,52 @@ if st.session_state['chart_expanded']:
                         annotation=dict(font_size=10, font_color="#94a3b8", font_family="Inter")
                     )
 
-            # Dominant Irradiance Curve
             custom_data_fs = []
             for _, r in df_plot.iterrows():
-                custom_data_fs.append([r['time_display'], weather_info['sky_condition'] if weather_info['available'] else 'N/A'])
+                custom_data_fs.append([weather_info['sky_condition'] if weather_info['available'] else 'N/A'])
 
-            fig_fs.add_trace(go.Scatter(
+            # Clean linear line (shape="linear", no spline smoothing)
+            fig_fs.add_trace(scatter_cls(
                 x=df_plot['dt'],
                 y=df_plot['irradiance_W_m2'],
                 mode='lines',
-                name='Solar Irradiance',
-                line=dict(color='#ea580c', width=2.6),
+                name='Irradiance',
+                line=dict(color='#f59e0b', width=2.5, shape='linear'),
                 fill='tozeroy',
-                fillcolor='rgba(234, 88, 12, 0.05)',
+                fillcolor='rgba(245, 158, 11, 0.05)',
                 customdata=custom_data_fs,
                 hovertemplate=(
-                    '<b>%{customdata[0]}</b><br>'
                     'Irradiance: <b>%{y:.1f} W/m²</b><br>'
-                    + ('Sky: %{customdata[1]}<br>' if weather_info['available'] and weather_info['sky_condition'] else '')
+                    + ('Sky: %{customdata[0]}<br>' if weather_info['available'] and weather_info['sky_condition'] else '')
                     + '<extra></extra>'
                 )
             ))
             
             fig_fs.update_layout(
                 height=650,
-                margin=dict(l=55, r=30, t=25, b=35),
+                margin=dict(l=45, r=20, t=30, b=30),
                 paper_bgcolor='rgba(0,0,0,0)',
                 plot_bgcolor='rgba(0,0,0,0)',
-                hovermode='x',
+                hovermode='x unified',
                 dragmode='zoom',
                 xaxis=dict(
-                    showgrid=True, gridcolor='rgba(226, 232, 240, 0.65)',
-                    tickformat=time_fmt, tickfont=dict(size=11, color='#64748b', family='Inter'),
+                    showgrid=True, gridcolor='#f1f5f9', zeroline=False,
+                    tickformat=time_fmt, hoverformat='%H:%M:%S',
+                    tickfont=dict(size=11, color='#64748b', family='Inter'),
                     showspikes=True, spikethickness=1, spikedash='dot', spikemode='across'
                 ),
                 yaxis=dict(
                     title=dict(text='Irradiance (W/m²)', font=dict(size=13, color='#ea580c', weight=600, family='Inter')),
-                    showgrid=True, gridcolor='rgba(226, 232, 240, 0.65)',
-                    tickfont=dict(size=11, color='#64748b', family='Inter'),
-                    showspikes=True, spikethickness=1, spikedash='dot'
+                    showgrid=True, gridcolor='#f1f5f9', zeroline=False,
+                    tickfont=dict(size=11, color='#64748b', family='Inter')
                 )
             )
             
             cfg_fs = {
-                'responsive': True, 'scrollZoom': True, 'displayModeBar': True,
+                'responsive': True, 'scrollZoom': True,
+                'displayModeBar': 'hover',
                 'displaylogo': False,
+                'modeBarButtonsToRemove': ['lasso2d', 'select2d'],
                 'toImageButtonOptions': {
                     'format': 'png', 'filename': f'solar_irradiance_expanded_{active_timeframe.lower().replace(" ", "_")}',
                     'height': 900, 'width': 1800, 'scale': 2
@@ -1107,11 +1136,12 @@ col_left, col_center, col_right = st.columns([3.2, 5.8, 3.0], gap="medium")
 # ZONE 1 (LEFT): HERO POWER, 2x3 METRIC GRID, PRODUCTION STATUS
 # -----------------------------------------------------------------------------------------
 with col_left:
-    # 1. Hero KPI: Current Generated Power (Watts)
+    # 1. Hero KPI: Current Generated Power (Watts) + 10-Minute Trend Indicator
     st.markdown(f"""
     <div class="hero-kpi-card">
         <div class="hero-kpi-title">{get_icon('zap', size=16, color='#d97706')} CURRENT GENERATED POWER</div>
         <div class="hero-kpi-val tabular-val">{format_power_w(current_power_w)}<span class="hero-kpi-unit">W</span></div>
+        {power_trend_html}
     </div>
     """, unsafe_allow_html=True)
 
@@ -1268,52 +1298,53 @@ with col_center:
                         annotation=dict(font_size=9, font_color="#94a3b8", font_family="Inter")
                     )
 
-            # Dominant single curve: Solar Irradiance
             custom_data_main = []
             for _, r in df_plot.iterrows():
-                custom_data_main.append([r['time_display'], weather_info['sky_condition'] if weather_info['available'] else 'N/A'])
+                custom_data_main.append([weather_info['sky_condition'] if weather_info['available'] else 'N/A'])
 
-            fig_main.add_trace(go.Scatter(
+            # Clean linear line trace (shape="linear", subtle fill, no spline smoothing)
+            fig_main.add_trace(scatter_cls(
                 x=df_plot['dt'],
                 y=df_plot['irradiance_W_m2'],
                 mode='lines',
-                name='Solar Irradiance',
-                line=dict(color='#ea580c', width=2.4),
+                name='Irradiance',
+                line=dict(color='#f59e0b', width=2.5, shape='linear'),
                 fill='tozeroy',
-                fillcolor='rgba(234, 88, 12, 0.05)',
+                fillcolor='rgba(245, 158, 11, 0.05)',
                 customdata=custom_data_main,
                 hovertemplate=(
-                    '<b>%{customdata[0]}</b><br>'
                     'Irradiance: <b>%{y:.1f} W/m²</b><br>'
-                    + ('Sky: %{customdata[1]}<br>' if weather_info['available'] and weather_info['sky_condition'] else '')
+                    + ('Sky: %{customdata[0]}<br>' if weather_info['available'] and weather_info['sky_condition'] else '')
                     + '<extra></extra>'
                 )
             ))
             
+            # Subtle gridlines (#f1f5f9), zeroline=False, compact margins
             fig_main.update_layout(
                 height=280,
-                margin=dict(l=45, r=20, t=18, b=25),
+                margin=dict(l=40, r=20, t=30, b=30),
                 paper_bgcolor='rgba(0,0,0,0)',
                 plot_bgcolor='rgba(0,0,0,0)',
-                hovermode='x',
+                hovermode='x unified',
                 dragmode='zoom',
                 xaxis=dict(
-                    showgrid=True, gridcolor='rgba(226, 232, 240, 0.55)',
-                    tickformat=time_fmt, tickfont=dict(size=10, color='#64748b', family='Inter'),
+                    showgrid=True, gridcolor='#f1f5f9', zeroline=False,
+                    tickformat=time_fmt, hoverformat='%H:%M:%S',
+                    tickfont=dict(size=10, color='#64748b', family='Inter'),
                     showspikes=True, spikethickness=1, spikedash='dot', spikemode='across'
                 ),
                 yaxis=dict(
                     title=dict(text='Irradiance (W/m²)', font=dict(size=11, color='#ea580c', weight=600, family='Inter')),
-                    showgrid=True, gridcolor='rgba(226, 232, 240, 0.55)',
-                    tickfont=dict(size=10, color='#64748b', family='Inter'),
-                    showspikes=True, spikethickness=1, spikedash='dot'
+                    showgrid=True, gridcolor='#f1f5f9', zeroline=False,
+                    tickfont=dict(size=10, color='#64748b', family='Inter')
                 ),
                 showlegend=False
             )
             
-            # Normal view: minimal non-intrusive toolbar
+            # Non-intrusive on-hover ModeBar with essential inspection tools
             cfg_main = {
-                'responsive': True, 'scrollZoom': True, 'displayModeBar': True,
+                'responsive': True, 'scrollZoom': True,
+                'displayModeBar': 'hover',
                 'displaylogo': False,
                 'modeBarButtonsToRemove': ['lasso2d', 'select2d', 'toggleSpikelines', 'hoverClosestCartesian', 'hoverCompareCartesian'],
                 'toImageButtonOptions': {
@@ -1330,27 +1361,39 @@ with col_center:
             </div>
             """, unsafe_allow_html=True)
 
-    # 3. Six Secondary Charts Arranged in 3x2 Grid (175px Height)
+    # 3. Six Secondary Charts Arranged in 3x2 Grid (175px Height, No Fill by Default)
     def render_sparkline_chart(df, col_name, label, color_code, unit_str):
         if not df.empty and len(df) >= 2:
             fig_sub = go.Figure()
-            fig_sub.add_trace(go.Scatter(
+            fig_sub.add_trace(scatter_cls(
                 x=df['dt'], y=df[col_name],
-                mode='lines', line=dict(color=color_code, width=1.8),
+                mode='lines', line=dict(color=color_code, width=1.8, shape='linear'),
+                fill=None,
+                name=label,
                 hovertemplate=f'<b>%{{x|%H:%M:%S}}</b><br>{label}: <b>%{{y:.2f}} {unit_str}</b><extra></extra>'
             ))
             fig_sub.update_layout(
-                height=175, margin=dict(l=35, r=10, t=10, b=20),
-                paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                height=175,
+                margin=dict(l=38, r=14, t=14, b=22),
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
                 hovermode='x',
-                xaxis=dict(showgrid=True, gridcolor='rgba(226, 232, 240, 0.5)', tickformat='%H:%M', tickfont=dict(size=9, color='#94a3b8', family='Inter')),
-                yaxis=dict(showgrid=True, gridcolor='rgba(226, 232, 240, 0.5)', tickfont=dict(size=9, color='#94a3b8', family='Inter')),
+                xaxis=dict(
+                    showgrid=True, gridcolor='#f1f5f9', zeroline=False,
+                    nticks=4, tickformat="%H:%M",
+                    tickfont=dict(size=9, color='#94a3b8', family='Inter')
+                ),
+                yaxis=dict(
+                    showgrid=True, gridcolor='#f1f5f9', zeroline=False,
+                    tickfont=dict(size=9, color='#94a3b8', family='Inter')
+                ),
                 showlegend=False
             )
             cfg_sub = {
-                'responsive': True, 'scrollZoom': True, 'displayModeBar': True,
+                'responsive': True, 'scrollZoom': True,
+                'displayModeBar': 'hover',
                 'displaylogo': False,
-                'modeBarButtonsToRemove': ['lasso2d', 'select2d'],
+                'modeBarButtonsToRemove': ['lasso2d', 'select2d', 'toggleSpikelines', 'hoverClosestCartesian', 'hoverCompareCartesian'],
                 'toImageButtonOptions': {'format': 'png', 'filename': f'{col_name}_snapshot', 'scale': 2}
             }
             st.plotly_chart(fig_sub, use_container_width=True, config=cfg_sub)
@@ -1380,12 +1423,13 @@ with col_center:
     r2_col1, r2_col2, r2_col3 = st.columns(3, gap="small")
     with r2_col1:
         with st.container(border=True):
-            st.markdown(f'<div class="chart-card-header"><span class="chart-header-title">{get_icon("sun-dim", size=14, color="#f59e0b")} Illuminance (Lux)</span></div>', unsafe_allow_html=True)
-            render_sparkline_chart(df_plot, 'illuminance_lux', 'Illuminance', '#f59e0b', 'Lux')
+            st.markdown(f'<div class="chart-card-header"><span class="chart-header-title">{get_icon("sun-dim", size=14, color="#eab308")} Illuminance (Lux)</span></div>', unsafe_allow_html=True)
+            render_sparkline_chart(df_plot, 'illuminance_lux', 'Illuminance', '#eab308', 'Lux')
     with r2_col2:
         with st.container(border=True):
-            st.markdown(f'<div class="chart-card-header"><span class="chart-header-title">{get_icon("zap", size=14, color="#0284c7")} Power (W)</span></div>', unsafe_allow_html=True)
-            render_sparkline_chart(df_plot, 'power_W', 'Power', '#0284c7', 'W')
+            # Secondary Power Chart: Clear vibrant orange line (#f97316)
+            st.markdown(f'<div class="chart-card-header"><span class="chart-header-title">{get_icon("zap", size=14, color="#f97316")} Power (W)</span></div>', unsafe_allow_html=True)
+            render_sparkline_chart(df_plot, 'power_W', 'Power', '#f97316', 'W')
     with r2_col3:
         with st.container(border=True):
             st.markdown(f'<div class="chart-card-header"><span class="chart-header-title">{get_icon("battery-charging", size=14, color="#10b981")} Energy (kWh)</span></div>', unsafe_allow_html=True)
@@ -1454,7 +1498,7 @@ with col_right:
     </div>
     """, unsafe_allow_html=True)
 
-    # 3. Recent Events Feed
+    # 3. Recent Events Feed (Clean HTML Escaped Rows, Zero Raw HTML Displayed)
     st.markdown(f"""
     <div class="dashboard-card">
         <div class="card-title">{get_icon('activity', size=16, color='#0284c7')} RECENT EVENTS</div>
@@ -1463,9 +1507,10 @@ with col_right:
     if solar_data['events']:
         for ev in reversed(solar_data['events'][-5:]):
             ev_color = '#10b981' if ev['level']=='success' else ('#f59e0b' if ev['level']=='warning' else '#0284c7')
+            clean_txt = html.escape(str(ev['text']))
             st.markdown(f"""
-            <div style="font-size: 11px; color: #334155; display: flex; align-items: center; justify-content: space-between; background: rgba(248, 250, 252, 0.9); padding: 4px 8px; border-radius: 6px;">
-                <span><span style="color: {ev_color};">●</span> {ev['text']}</span>
+            <div style="font-size: 11px; color: #334155; display: flex; align-items: center; justify-content: space-between; background: rgba(248, 250, 252, 0.9); padding: 5px 8px; border-radius: 6px;">
+                <span style="display: flex; align-items: center; gap: 5px;"><span style="color: {ev_color};">●</span> {clean_txt}</span>
                 <span style="color: #94a3b8; font-size: 10px;" class="tabular-val">{ev['time']}</span>
             </div>
             """, unsafe_allow_html=True)
