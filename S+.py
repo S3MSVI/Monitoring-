@@ -1033,7 +1033,7 @@ if st.session_state['chart_expanded']:
         </div>
         """, unsafe_allow_html=True)
     with banner_c2:
-        if st.button("✖ Exit Fullscreen / Back", type="primary", use_container_width=True):
+        if st.button("Exit Fullscreen", key="btn_exit_fs", type="primary", use_container_width=True):
             st.session_state['chart_expanded'] = False
             st.rerun()
 
@@ -1110,6 +1110,13 @@ if st.session_state['chart_expanded']:
                 plot_bgcolor='rgba(0,0,0,0)',
                 hovermode='x unified',
                 dragmode='zoom',
+                uirevision=active_timeframe,
+                modebar=dict(
+                    bgcolor='rgba(255, 255, 255, 0.85)',
+                    color='#64748b',
+                    activecolor='#ea580c',
+                    orientation='h'
+                ),
                 xaxis=dict(
                     showgrid=True, gridcolor='#f1f5f9', zeroline=False,
                     tickformat=time_fmt, hoverformat='%H:%M:%S',
@@ -1270,7 +1277,7 @@ with col_center:
             st.session_state['chart_timeframe'] = sel_tf
             st.rerun()
     with btn_col:
-        if st.button("⛶ Fullscreen / Expand", key="btn_enter_fs", use_container_width=True):
+        if st.button("Expand Chart", key="btn_enter_fs", use_container_width=True):
             st.session_state['chart_expanded'] = True
             st.rerun()
 
@@ -1346,6 +1353,13 @@ with col_center:
                 plot_bgcolor='rgba(0,0,0,0)',
                 hovermode='x unified',
                 dragmode='zoom',
+                uirevision=active_timeframe,
+                modebar=dict(
+                    bgcolor='rgba(255, 255, 255, 0.85)',
+                    color='#64748b',
+                    activecolor='#ea580c',
+                    orientation='h'
+                ),
                 xaxis=dict(
                     showgrid=True, gridcolor='#f1f5f9', zeroline=False,
                     tickformat=time_fmt, hoverformat='%H:%M:%S',
@@ -1362,13 +1376,17 @@ with col_center:
             
             # Non-intrusive on-hover ModeBar with essential inspection tools
             cfg_main = {
-                'responsive': True, 'scrollZoom': True,
+                'responsive': True,
+                'scrollZoom': True,
                 'displayModeBar': 'hover',
                 'displaylogo': False,
-                'modeBarButtonsToRemove': ['lasso2d', 'select2d', 'toggleSpikelines', 'hoverClosestCartesian', 'hoverCompareCartesian'],
+                'modeBarButtonsToRemove': ['lasso2d', 'select2d'],
                 'toImageButtonOptions': {
-                    'format': 'png', 'filename': f'solar_irradiance_{active_timeframe.lower().replace(" ", "_")}',
-                    'height': 600, 'width': 1200, 'scale': 2
+                    'format': 'png',
+                    'filename': f'solar_irradiance_{active_timeframe.lower().replace(" ", "_")}',
+                    'height': 600,
+                    'width': 1200,
+                    'scale': 2
                 }
             }
             st.plotly_chart(fig_main, use_container_width=True, config=cfg_main)
@@ -1393,10 +1411,18 @@ with col_center:
             ))
             fig_sub.update_layout(
                 height=175,
-                margin=dict(l=38, r=14, t=14, b=22),
+                margin=dict(l=38, r=14, t=18, b=22),
                 paper_bgcolor='rgba(0,0,0,0)',
                 plot_bgcolor='rgba(0,0,0,0)',
                 hovermode='x',
+                dragmode='zoom',
+                uirevision=active_timeframe,
+                modebar=dict(
+                    bgcolor='rgba(255, 255, 255, 0.85)',
+                    color='#94a3b8',
+                    activecolor=color_code,
+                    orientation='h'
+                ),
                 xaxis=dict(
                     showgrid=True, gridcolor='#f1f5f9', zeroline=False,
                     nticks=4, tickformat="%H:%M",
@@ -1410,9 +1436,17 @@ with col_center:
             )
             cfg_sub = {
                 'responsive': True,
-                'scrollZoom': False,
-                'displayModeBar': False,
-                'displaylogo': False
+                'scrollZoom': True,
+                'displayModeBar': 'hover',
+                'displaylogo': False,
+                'modeBarButtonsToRemove': ['lasso2d', 'select2d'],
+                'toImageButtonOptions': {
+                    'format': 'png',
+                    'filename': f'solar_{col_name}_{active_timeframe.lower().replace(" ", "_")}',
+                    'height': 450,
+                    'width': 900,
+                    'scale': 2
+                }
             }
             st.plotly_chart(fig_sub, use_container_width=True, config=cfg_sub)
         else:
