@@ -1,18 +1,19 @@
 # -*- coding: utf-8 -*-
 """
 =========================================================================================
-SOLAR POWER MONITORING SYSTEM
-Advanced Real-Time Solar Photovoltaic Data Acquisition & Analytics Dashboard
+SOLAR PHOTOVOLTAIC POWER MONITORING SYSTEM (S+1)
+Industrial-Grade Real-Time Telemetry & Ephemeris Analytics Dashboard
 =========================================================================================
-Style: Professional Industrial / Scientific / High Clarity & Balanced Scale
-Standardized Units: Power in W, Energy in kWh everywhere in UI and Exports
-Icon System: Unified Lucide-Style SVG (Dependency-Free, Stroke-Based)
-Backend: Robust Paho MQTT Engine with Singleton Data Cache
+Primary Central Chart: Dedicated Illuminance (Lux) with Plotly & Atmospheric Bands
+Fullscreen/Expanded View: Intuitive inspection mode with prominent "Exit Fullscreen" button
+Secondary Grid (3x2): Voltage, Current, Temperature, Irradiance, Power, Energy
+Backend: Robust Paho MQTT (broker.emqx.io with hivemq fallback) + Singleton Data Cache
+Icon System: 100% Dependency-Free Inline Lucide SVG (Stroke-Based)
 =========================================================================================
 """
 
 import streamlit as st
-import paho.mqtt
+import plotly.graph_objects as go
 import paho.mqtt.client as mqtt
 import pandas as pd
 import time
@@ -22,233 +23,169 @@ import pytz
 import jdatetime
 import math
 import os
+import threading
 
 # =========================================================================================
-# 1. PAGE CONFIGURATION & METADATA
+# 1. PAGE CONFIGURATION & TIMEZONE SETUP
 # =========================================================================================
 st.set_page_config(
-    page_title="Solar Power Monitoring Dashboard",
+    page_title="Solar Photovoltaic Power Monitoring",
+    page_icon="☀️",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
-# =========================================================================================
-# 2. PROFESSIONAL UNIFIED ICON SYSTEM (LUCIDE SVG SPECIFICATION)
-# =========================================================================================
-def get_icon(name: str, size: int = 17, color: str = "currentColor", stroke_width: float = 1.8) -> str:
-    """Returns a clean, resolution-independent inline SVG icon in refined Lucide style."""
-    paths = {
-        'sun': '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',
-        'sun-dim': '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m5 5 1.5 1.5"/><path d="m17.5 17.5 1.5 1.5"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m5 19 1.5-1.5"/><path d="m17.5 6.5 1.5-1.5"/>',
-        'zap': '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',
-        'gauge': '<path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/>',
-        'activity': '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',
-        'thermometer': '<path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>',
-        'battery-charging': '<path d="M15 7h1a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-2"/><path d="M6 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h1"/><path d="m11 7-3 5h4l-3 5"/><line x1="22" x2="22" y1="11" y2="13"/>',
-        'calendar': '<rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/>',
-        'clock': '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
-        'cloud': '<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>',
-        'cloud-sun': '<path d="M12 2v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="M20 12h2"/><path d="m19.07 4.93-1.41 1.41"/><path d="M15.947 12.65a4 4 0 0 0-5.925-4.128"/><path d="M13 22H7a5 5 0 1 1 4.9-6H13a3 3 0 0 1 0 6z"/>',
-        'wifi': '<path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" x2="12.01" y1="20" y2="20"/>',
-        'shield-check': '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/>',
-        'database': '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>',
-        'refresh': '<polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>',
-        'layers': '<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>',
-        'bell': '<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>',
-        'download': '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>',
-        'sunset': '<path d="M12 10V2"/><path d="m4.93 10.93 1.41 1.41"/><path d="M2 18h2"/><path d="M20 18h2"/><path d="m19.07 10.93-1.41 1.41"/><path d="M22 22H2"/><path d="m8 6 4-4 4 4"/><path d="M16 18a4 4 0 0 0-8 0"/>',
-        'moon': '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
-        'sliders': '<line x1="4" x2="20" y1="21" y2="21"/><line x1="4" x2="20" y1="14" y2="14"/><line x1="4" x2="20" y1="7" y2="7"/><circle cx="14" cy="21" r="2"/><circle cx="8" cy="14" r="2"/><circle cx="16" cy="7" r="2"/>',
-        'trending-up': '<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>'
-    }
-    path_markup = paths.get(name, paths['activity'])
-    return f'<span class="ui-icon" style="color: {color};"><svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="{stroke_width}" stroke-linecap="round" stroke-linejoin="round">{path_markup}</svg></span>'
-
-# =========================================================================================
-# 3. UNIT CONVERSIONS & ADAPTIVE FORMATTERS
-# =========================================================================================
-def energy_mwh_to_kwh(val_mwh: float) -> float:
-    """Centralized conversion: 1 kWh = 1,000,000 mWh."""
-    return val_mwh / 1_000_000.0
-
-def format_energy_kwh(val_kwh: float) -> str:
-    """Adaptive precision formatter for kWh values to preserve meaningful resolution."""
-    if val_kwh is None or math.isnan(val_kwh):
-        return "N/A"
-    if val_kwh <= 0:
-        return "0.0000"
-    elif val_kwh >= 100:
-        return f"{val_kwh:.1f}"
-    elif val_kwh >= 10:
-        return f"{val_kwh:.2f}"
-    elif val_kwh >= 1:
-        return f"{val_kwh:.3f}"
-    elif val_kwh >= 0.01:
-        return f"{val_kwh:.4f}"
-    else:
-        return f"{val_kwh:.5f}"
-
-def format_power_w(val_w: float) -> str:
-    """Adaptive precision formatter for electrical power in Watts."""
-    if val_w is None or math.isnan(val_w):
-        return "0.00"
-    if val_w >= 1000:
-        return f"{val_w:,.1f}"
-    elif val_w >= 10:
-        return f"{val_w:.2f}"
-    elif val_w >= 1:
-        return f"{val_w:.3f}"
-    else:
-        return f"{val_w:.4f}"
-
-# =========================================================================================
-# 4. TEHRAN EPHEMERIS, WEATHER & ASTRONOMICAL SOLAR ELEVATION
-# =========================================================================================
 tehran_tz = pytz.timezone('Asia/Tehran')
-now_tehran = datetime.now(tehran_tz)
+utc_tz = pytz.utc
 
-gregorian_date_str = now_tehran.strftime("%Y-%m-%d")
-jalali_obj = jdatetime.date.fromgregorian(date=now_tehran.date())
-jalali_date_str = jalali_obj.strftime("%Y/%m/%d")
-time_str = now_tehran.strftime("%H:%M:%S")
+# Session state initialization for Expanded Fullscreen Inspection Mode
+if 'chart_expanded' not in st.session_state:
+    st.session_state['chart_expanded'] = False
 
-def interpret_sky_condition(weather_code, cloud_cover):
-    """
-    Translates WMO weather interpretation code and cloud cover percentage 
-    into standard scientific sky condition categories: Clear, Partly Cloudy, Cloudy.
-    """
-    if weather_code is not None:
-        if weather_code == 0:
-            return "Clear"
-        elif weather_code in [1, 2]:
-            return "Partly Cloudy"
-        elif weather_code in [3]:
-            return "Cloudy"
-        elif weather_code in [45, 48]:
-            return "Foggy"
-        elif weather_code in [51, 53, 55, 56, 57, 61, 63, 65, 80, 81, 82]:
-            return "Cloudy"
-        elif weather_code in [71, 73, 75, 77, 85, 86]:
-            return "Cloudy"
-        elif weather_code >= 95:
-            return "Cloudy"
-    
-    if cloud_cover is not None:
-        if cloud_cover <= 20:
-            return "Clear"
-        elif cloud_cover <= 70:
-            return "Partly Cloudy"
-        else:
-            return "Cloudy"
-            
-    return None
+# =========================================================================================
+# 2. ICON SYSTEM: INLINE LUCIDE-STYLE SVGS (100% EMOJI-FREE)
+# =========================================================================================
+def get_icon(name: str, size: int = 16, color: str = "currentColor") -> str:
+    """Returns ultra-crisp, dependency-free inline SVG stroke icons."""
+    icons = {
+        'sun': f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>',
+        'sun-dim': f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 4h.01"/><path d="M20 12h.01"/><path d="M12 20h.01"/><path d="M4 12h.01"/><path d="m17.657 6.343.01.01"/><path d="m17.657 17.657.01.01"/><path d="m6.343 17.657.01.01"/><path d="m6.343 6.343.01.01"/></svg>',
+        'zap': f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
+        'activity': f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>',
+        'gauge': f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>',
+        'thermometer': f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>',
+        'battery-charging': f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 7h1a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-1"/><path d="M6 7H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h1"/><line x1="11" x2="13" y1="11" y2="13"/><line x1="13" x2="11" y1="13" y2="15"/></svg>',
+        'sliders': f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="4" y1="21" y2="14"/><line x1="4" x2="4" y1="10" y2="3"/><line x1="12" x2="12" y1="21" y2="12"/><line x1="12" x2="12" y1="8" y2="3"/><line x1="20" x2="20" y1="21" y2="16"/><line x1="20" x2="20" y1="12" y2="3"/><line x1="1" x2="7" y1="14" y2="14"/><line x1="9" x2="15" y1="8" y2="8"/><line x1="17" x2="23" y1="16" y2="16"/></svg>',
+        'wifi': f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h.01"/><path d="M2 8.82a15 15 0 0 1 20 0"/><path d="M5 12.859a10 10 0 0 1 14 0"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/></svg>',
+        'shield-check': f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg>',
+        'clock': f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+        'database': f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>',
+        'download': f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>',
+        'maximize-2': f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" x2="14" y1="3" y2="10"/><line x1="3" x2="10" y1="21" y2="14"/></svg>',
+        'minimize-2': f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" x2="21" y1="10" y2="3"/><line x1="3" x2="10" y1="21" y2="14"/></svg>',
+        'trending-up': f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>',
+        'alert-triangle': f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>',
+        'cloud': f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>',
+        'cloud-sun': f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="M20 12h2"/><path d="m19.07 4.93-1.41 1.41"/><path d="M15.947 12.65a4 4 0 0 0-5.925-4.128"/><path d="M13 22H7a5 5 0 1 1 4.9-6H13a3 3 0 0 1 0 6Z"/></svg>',
+        'cloud-rain': f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M16 14v6"/><path d="M8 14v6"/><path d="M12 16v6"/></svg>',
+        'compass': f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>',
+        'eye': f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>'
+    }
+    return icons.get(name, f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2"><circle cx="12" cy="12" r="8"/></svg>')
 
-def get_sky_icon_name(condition: str) -> str:
-    """Returns resolution-independent Lucide icon matching sky state (no emojis)."""
-    if not condition:
-        return 'sun'
-    c = str(condition).lower()
-    if 'clear' in c:
-        return 'sun'
-    elif 'partly' in c:
-        return 'cloud-sun'
-    else:
-        return 'cloud'
+# =========================================================================================
+# 3. EPHEMERIS & OPEN-METEO WEATHER ENGINE (15-MIN CACHE)
+# =========================================================================================
+WMO_CODES = {
+    0: ("Clear", "sun"),
+    1: ("Mainly Clear", "sun"),
+    2: ("Partly Cloudy", "cloud-sun"),
+    3: ("Overcast", "cloud"),
+    45: ("Foggy", "cloud"),
+    48: ("Rime Fog", "cloud"),
+    51: ("Light Drizzle", "cloud-rain"),
+    53: ("Drizzle", "cloud-rain"),
+    55: ("Dense Drizzle", "cloud-rain"),
+    61: ("Slight Rain", "cloud-rain"),
+    63: ("Moderate Rain", "cloud-rain"),
+    65: ("Heavy Rain", "cloud-rain"),
+    71: ("Slight Snow", "cloud"),
+    73: ("Moderate Snow", "cloud"),
+    75: ("Heavy Snow", "cloud"),
+    80: ("Rain Showers", "cloud-rain"),
+    81: ("Moderate Showers", "cloud-rain"),
+    82: ("Violent Showers", "cloud-rain"),
+    95: ("Thunderstorm", "zap"),
+}
 
 @st.cache_data(ttl=900)
 def get_tehran_weather_data():
-    """
-    Fetches real outdoor weather conditions for Tehran from Open-Meteo API.
-    Cached for 15 minutes to guarantee zero latency on real-time telemetry reruns.
-    Retrieves temperature, relative humidity, cloud cover, and WMO weather code,
-    including today's hourly profile for atmospheric timeline bands.
-    """
+    """Fetches and caches real atmospheric observations & hourly schedule for Tehran."""
+    url = "https://api.open-meteo.com/v1/forecast?latitude=35.6892&longitude=51.3890&current=temperature_2m,cloud_cover,weather_code&hourly=cloud_cover,weather_code&timezone=Asia%2FTehran"
     try:
-        url = "https://api.open-meteo.com/v1/forecast?latitude=35.6892&longitude=51.3890&current=temperature_2m,relative_humidity_2m,cloud_cover,weather_code&hourly=cloud_cover,weather_code&forecast_days=1&timezone=Asia%2FTehran"
-        res = requests.get(url, timeout=3.5)
-        if res.status_code == 200:
-            data = res.json()
-            curr = data.get('current', {})
-            hourly = data.get('hourly', {})
-            temp = curr.get('temperature_2m')
-            humidity = curr.get('relative_humidity_2m')
-            cloud = curr.get('cloud_cover')
-            code = curr.get('weather_code')
-            sky_cond = interpret_sky_condition(code, cloud)
+        resp = requests.get(url, timeout=3.5)
+        if resp.status_code == 200:
+            data = resp.json()
+            curr = data.get("current", {})
+            hourly = data.get("hourly", {})
+            wcode = curr.get("weather_code", 0)
+            cloud_pct = curr.get("cloud_cover", 0)
+            temp = curr.get("temperature_2m", None)
+            sky_cond, icon_name = WMO_CODES.get(wcode, ("Cloudy", "cloud"))
             
-            h_times = hourly.get('time', [])
-            h_clouds = hourly.get('cloud_cover', [])
-            h_codes = hourly.get('weather_code', [])
-            
-            hourly_schedule = []
-            for t_str, c_val, code_val in zip(h_times, h_clouds, h_codes):
-                cond = interpret_sky_condition(code_val, c_val)
-                hourly_schedule.append({
-                    'time_str': t_str,
-                    'condition': cond if cond else "Clear",
-                    'cloud_cover': c_val,
-                    'weather_code': code_val
-                })
-            
+            # Construct hourly condition schedule for timeline background bands
+            schedule = []
+            h_times = hourly.get("time", [])
+            h_codes = hourly.get("weather_code", [])
+            for t_str, c_code in zip(h_times, h_codes):
+                c_lbl, _ = WMO_CODES.get(c_code, ("Cloudy", "cloud"))
+                schedule.append({'time_str': t_str, 'condition': c_lbl})
+                
             return {
                 'available': True,
-                'temp_str': f"{temp:.1f}°C" if temp is not None else "--",
-                'humidity': humidity,
-                'cloud_cover': cloud,
-                'weather_code': code,
-                'sky_condition': sky_cond if sky_cond else "Clear",
-                'hourly_schedule': hourly_schedule
+                'temp': temp,
+                'temp_str': f"{temp:.1f}°C" if temp is not None else "N/A",
+                'cloud_pct': cloud_pct,
+                'sky_condition': sky_cond,
+                'icon_name': icon_name,
+                'hourly_schedule': schedule
             }
     except Exception:
         pass
-    
     return {
         'available': False,
-        'temp_str': "18.5°C",
-        'humidity': None,
-        'cloud_cover': None,
-        'weather_code': None,
+        'temp': None,
+        'temp_str': "N/A",
+        'cloud_pct': None,
         'sky_condition': None,
+        'icon_name': "sun",
         'hourly_schedule': []
     }
 
-weather_info = get_tehran_weather_data()
-tehran_temp = weather_info['temp_str']
-sky_icon_name = get_sky_icon_name(weather_info['sky_condition'])
+def calculate_solar_elevation(lat=35.6892, lon=51.3890, dt=None):
+    """Calculates astronomical solar altitude angle for accurate ambient illumination."""
+    if dt is None:
+        dt = datetime.now(tehran_tz)
+    dt_utc = dt.astimezone(utc_tz)
+    day_of_year = dt_utc.timetuple().tm_yday
+    decimal_hour = dt_utc.hour + dt_utc.minute / 60.0 + dt_utc.second / 3600.0
+
+    gamma = (2 * math.pi / 365.0) * (day_of_year - 1 + (decimal_hour - 12) / 24.0)
+    eqtime = 229.18 * (0.000075 + 0.001868 * math.cos(gamma) - 0.032077 * math.sin(gamma)
+                       - 0.014615 * math.cos(2 * gamma) - 0.040849 * math.sin(2 * gamma))
+    decl = (0.006918 - 0.399912 * math.cos(gamma) + 0.070257 * math.sin(gamma)
+            - 0.006758 * math.cos(2 * gamma) + 0.000907 * math.sin(2 * gamma)
+            - 0.002697 * math.cos(3 * gamma) + 0.00148 * math.sin(3 * gamma))
+
+    time_offset = eqtime + 4 * lon
+    tst = (decimal_hour * 60 + time_offset) % 1440
+    ha = (tst / 4 - 180) * math.pi / 180
+
+    lat_rad = lat * math.pi / 180
+    sin_elev = math.sin(lat_rad) * math.sin(decl) + math.cos(lat_rad) * math.cos(decl) * math.cos(ha)
+    return math.degrees(math.asin(max(-1.0, min(1.0, sin_elev))))
+
+def get_solar_progress(dt=None):
+    """Returns horizontal sun position and progress fraction across daylight hours."""
+    if dt is None:
+        dt = datetime.now(tehran_tz)
+    minutes = dt.hour * 60 + dt.minute
+    sunrise_m = 6 * 60
+    sunset_m = 18 * 60 + 30
+    if minutes < sunrise_m or minutes > sunset_m:
+        return None
+    return (minutes - sunrise_m) / (sunset_m - sunrise_m)
 
 def calculate_solar_variability(df_window: pd.DataFrame) -> dict:
-    """
-    Computes solar irradiance variability across the selected analytical window.
-    
-    Methodology:
-    Uses the statistical Coefficient of Variation (CV = sigma / mu) of measured irradiance (W/m²),
-    the standard metric recommended in IEEE / NREL photovoltaic variability literature.
-    
-    Documented Scientific Thresholds:
-    - If mean irradiance < 10 W/m² (night/deep twilight): 'Stable (Low Light)' (negligible solar flux).
-    - If samples < 3: 'Analyzing...' (insufficient statistical buffer size).
-    - Stable: CV < 0.10 (< 10% relative standard deviation, uniform irradiance curve).
-    - Moderate Variation: 0.10 <= CV < 0.25 (10% to 25% relative variation, gradual solar shift).
-    - High Variation: CV >= 0.25 (>= 25% relative variation, significant dynamic fluctuations).
-    
-    Note: 'High Variation' reflects dynamic fluctuations in measured irradiance and 
-    does not infer atmospheric cloud cover in the absence of weather station data.
-    """
-    if df_window is None or df_window.empty or 'irradiance_W_m2' not in df_window.columns:
-        return {'label': 'Analyzing...', 'color': '#64748b', 'cv': 0.0}
-    
-    irr_series = df_window['irradiance_W_m2'].dropna()
-    if len(irr_series) < 3:
-        return {'label': 'Analyzing...', 'color': '#64748b', 'cv': 0.0}
-    
-    mean_irr = float(irr_series.mean())
-    std_irr = float(irr_series.std())
-    
-    if mean_irr < 10.0:
-        return {'label': 'Stable (Low Light)', 'color': '#64748b', 'cv': 0.0}
-    
+    """Computes solar variability (CV = std / mean) for IEEE standard categorization."""
+    if df_window.empty or len(df_window) < 5 or 'irradiance_W_m2' not in df_window.columns:
+        return {'label': 'Stable', 'color': '#10b981', 'cv': 0.0}
+    irr_vals = df_window['irradiance_W_m2'].values
+    mean_irr = float(irr_vals.mean())
+    std_irr = float(irr_vals.std())
+    if mean_irr < 15.0:
+        return {'label': 'Stable (Low Light)', 'color': '#10b981', 'cv': 0.0}
     cv = std_irr / mean_irr
-    
     if cv < 0.10:
         return {'label': 'Stable', 'color': '#10b981', 'cv': cv}
     elif cv < 0.25:
@@ -256,633 +193,401 @@ def calculate_solar_variability(df_window: pd.DataFrame) -> dict:
     else:
         return {'label': 'High Variation', 'color': '#ef4444', 'cv': cv}
 
+def build_weather_bands(t_min, t_max, hourly_schedule, default_condition):
+    """Builds contiguous time interval bands overlapping [t_min, t_max] for atmospheric bands."""
+    if not hourly_schedule:
+        if default_condition:
+            return pd.DataFrame([{'start': t_min, 'end': t_max, 'condition': default_condition}])
+        return pd.DataFrame()
+    blocks = []
+    tz = t_min.tzinfo
+    for entry in hourly_schedule:
+        try:
+            t_block_start = pd.to_datetime(entry['time_str'])
+            if tz is not None:
+                if t_block_start.tzinfo is None:
+                    t_block_start = t_block_start.tz_localize(tz)
+                else:
+                    t_block_start = t_block_start.tz_convert(tz)
+            t_block_end = t_block_start + timedelta(hours=1)
+            overlap_start = max(t_min, t_block_start)
+            overlap_end = min(t_max, t_block_end)
+            if overlap_end > overlap_start:
+                cond = entry.get('condition', default_condition)
+                blocks.append({'start': overlap_start, 'end': overlap_end, 'condition': cond})
+        except Exception:
+            continue
+    if not blocks:
+        return pd.DataFrame()
+    merged = []
+    cur = blocks[0]
+    for b in blocks[1:]:
+        if b['condition'] == cur['condition'] and b['start'] <= cur['end']:
+            cur['end'] = max(cur['end'], b['end'])
+        else:
+            merged.append(cur)
+            cur = b
+    merged.append(cur)
+    return pd.DataFrame(merged)
 
-def calculate_solar_elevation(lat=35.6892, lon=51.3890, dt=None):
-    """Calculates astronomical solar altitude angle for accurate ambient illumination."""
-    if dt is None:
-        dt = datetime.now(pytz.utc)
+# =========================================================================================
+# 4. ASTRONOMICAL DYNAMIC AMBIENT THEME & SUN ORB INJECTION
+# =========================================================================================
+now_tehran = datetime.now(tehran_tz)
+solar_elev = calculate_solar_elevation(dt=now_tehran)
+sun_prog = get_solar_progress(dt=now_tehran)
+
+if solar_elev > 0:
+    # Daylight
+    bg_gradient = "linear-gradient(180deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)"
+    if sun_prog is not None:
+        sun_x = 10.0 + sun_prog * 80.0
+        sun_y = 5.0 + (1.0 - math.sin(sun_prog * math.pi)) * 18.0
+        glow_size = int(220 + math.sin(sun_prog * math.pi) * 160)
+        sun_opacity = round(0.45 + math.sin(sun_prog * math.pi) * 0.40, 2)
+        sun_color = f"rgba(251, 191, 36, {sun_opacity})"
+        sun_orb_html = f"""
+        <div id="solar-orb-wrapper" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: -1; overflow: hidden;">
+            <div style="position: absolute; left: {sun_x:.1f}%; top: {sun_y:.1f}%; width: {glow_size}px; height: {glow_size}px; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle, {sun_color} 0%, rgba(253, 230, 138, 0.25) 45%, rgba(254, 243, 199, 0) 75%); filter: blur(28px); transition: all 1.5s ease;"></div>
+        </div>
+        """
     else:
-        dt = dt.astimezone(pytz.utc)
-    
-    day_of_year = dt.timetuple().tm_yday
-    hour = dt.hour + dt.minute / 60.0 + dt.second / 3600.0
-    declination = 23.45 * math.sin(math.radians((360 / 365) * (day_of_year - 81)))
-    time_offset = 4 * lon
-    solar_time = hour + (time_offset / 60.0)
-    hour_angle = 15 * (solar_time - 12)
-    lat_rad = math.radians(lat)
-    dec_rad = math.radians(declination)
-    ha_rad = math.radians(hour_angle)
-    
-    sin_elev = math.sin(lat_rad) * math.sin(dec_rad) + math.cos(lat_rad) * math.cos(dec_rad) * math.cos(ha_rad)
-    return math.degrees(math.asin(max(-1.0, min(1.0, sin_elev))))
-
-solar_elev = calculate_solar_elevation(35.6892, 51.3890, now_tehran)
-
-# Dynamic Solar Trajectory & Atmospheric Sun Orb Geometry (Tehran Local Time)
-time_in_hours = now_tehran.hour + now_tehran.minute / 60.0 + now_tehran.second / 3600.0
-sunrise = 5.75  # ~05:45 Tehran
-sunset = 18.50   # ~18:30 Tehran
-day_length = sunset - sunrise
-
-if solar_elev > 10.0:
-    # Full Daylight Active
-    solar_phase = "Daylight Active"
-    solar_phase_icon = get_icon('sun', size=17, color='#ea580c')
-    bg_gradient = "linear-gradient(145deg, #f8fafc 0%, #edf2f7 50%, #e2e8f0 100%)"
-    card_bg = "rgba(255, 255, 255, 0.94)"
-    card_border = "rgba(200, 210, 225, 0.65)"
-    text_main = "#0f172a"
-    text_sub = "#475569"
-    text_muted = "#64748b"
-    
-    # Sun coordinates on natural sky arc
-    progress = max(0.0, min(1.0, (time_in_hours - sunrise) / day_length))
-    sun_x = 8.0 + (84.0 * progress)  # 8% (left) to 92% (right)
-    sun_y = 78.0 - (56.0 * math.sin(math.pi * progress))  # 78% (low) to 22% (midday peak)
-    
-    if progress < 0.25:
-        # Morning Ascent: soft warm tones
-        orb_size = 180
-        orb_opacity = 0.55
-        center_color = "rgba(255, 251, 235, 0.95)"
-        mid_color = "rgba(254, 215, 170, 0.55)"
-        outer_color = "rgba(251, 146, 60, 0.22)"
-        glow_color = "rgba(251, 146, 60, 0.20)"
-    elif progress > 0.70:
-        # Late Afternoon: warmer amber
-        orb_size = 205
-        orb_opacity = 0.60
-        center_color = "rgba(254, 243, 199, 0.95)"
-        mid_color = "rgba(251, 191, 36, 0.55)"
-        outer_color = "rgba(245, 158, 11, 0.24)"
-        glow_color = "rgba(245, 158, 11, 0.22)"
-    else:
-        # Peak Midday: brightest radiant center
-        orb_size = 220
-        orb_opacity = 0.65
-        center_color = "rgba(255, 255, 255, 0.98)"
-        mid_color = "rgba(254, 240, 138, 0.65)"
-        outer_color = "rgba(251, 191, 36, 0.28)"
-        glow_color = "rgba(251, 191, 36, 0.24)"
-
-    sun_orb_html = f'''<div class="sun-atmosphere-orb" style="position: fixed; width: {orb_size}px; height: {orb_size}px; border-radius: 50%; background: radial-gradient(circle, {center_color} 0%, {mid_color} 38%, {outer_color} 68%, transparent 85%); box-shadow: 0 0 85px 35px {glow_color}; filter: blur(16px); left: {sun_x:.1f}%; top: {sun_y:.1f}%; transform: translate(-50%, -50%); z-index: 0; pointer-events: none; opacity: {orb_opacity:.2f}; transition: all 1.2s ease-out;"></div>'''
-
-elif solar_elev > -5.0:
+        sun_orb_html = ""
+elif solar_elev > -6:
     # Twilight / Sunset
-    solar_phase = "Twilight / Sunset"
-    solar_phase_icon = get_icon('sunset', size=17, color='#f59e0b')
-    bg_gradient = "linear-gradient(145deg, #1e1b4b 0%, #312e81 40%, #1e293b 100%)"
-    card_bg = "rgba(255, 255, 255, 0.92)"
-    card_border = "rgba(200, 210, 225, 0.65)"
-    text_main = "#0f172a"
-    text_sub = "#475569"
-    text_muted = "#64748b"
-    
-    if time_in_hours > 12.0:
-        # Sunset: low toward right horizon, deep peach/amber/orange
-        progress = max(0.0, min(1.0, (time_in_hours - 17.5) / 1.5))
-        sun_x = 84.0 + (10.0 * progress)
-        sun_y = 66.0 + (16.0 * progress)
-        orb_size = 230
-        orb_opacity = max(0.20, 0.65 - (progress * 0.35))
-        center_color = "rgba(254, 215, 170, 0.95)"
-        mid_color = "rgba(249, 115, 22, 0.60)"
-        outer_color = "rgba(217, 119, 6, 0.25)"
-        glow_color = "rgba(234, 88, 12, 0.28)"
-    else:
-        # Dawn / Early Sunrise: rising from left horizon
-        progress = max(0.0, min(1.0, (time_in_hours - 5.0) / 1.0))
-        sun_x = 6.0 + (8.0 * progress)
-        sun_y = 78.0 - (12.0 * progress)
-        orb_size = 190
-        orb_opacity = 0.45 + (progress * 0.20)
-        center_color = "rgba(254, 215, 170, 0.90)"
-        mid_color = "rgba(251, 146, 60, 0.50)"
-        outer_color = "rgba(249, 115, 22, 0.20)"
-        glow_color = "rgba(251, 146, 60, 0.20)"
-
-    sun_orb_html = f'''<div class="sun-atmosphere-orb" style="position: fixed; width: {orb_size}px; height: {orb_size}px; border-radius: 50%; background: radial-gradient(circle, {center_color} 0%, {mid_color} 38%, {outer_color} 68%, transparent 85%); box-shadow: 0 0 95px 40px {glow_color}; filter: blur(18px); left: {sun_x:.1f}%; top: {sun_y:.1f}%; transform: translate(-50%, -50%); z-index: 0; pointer-events: none; opacity: {orb_opacity:.2f}; transition: all 1.2s ease-out;"></div>'''
-
+    bg_gradient = "linear-gradient(180deg, #fff7ed 0%, #ffedd5 60%, #fed7aa 100%)"
+    sun_orb_html = """
+    <div id="solar-orb-wrapper" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: -1; overflow: hidden;">
+        <div style="position: absolute; left: 88%; top: 22%; width: 260px; height: 260px; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle, rgba(249, 115, 22, 0.45) 0%, rgba(253, 186, 116, 0.2) 50%, rgba(254, 215, 170, 0) 75%); filter: blur(32px);"></div>
+    </div>
+    """
 else:
-    # Night Operational: Sun completely hidden
-    solar_phase = "Night Operational"
-    solar_phase_icon = get_icon('moon', size=17, color='#6366f1')
-    bg_gradient = "linear-gradient(145deg, #090d16 0%, #0f172a 50%, #1e293b 100%)"
-    card_bg = "rgba(255, 255, 255, 0.94)"
-    card_border = "rgba(200, 210, 225, 0.65)"
-    text_main = "#0f172a"
-    text_sub = "#475569"
-    text_muted = "#64748b"
+    # Night Operational
+    bg_gradient = "linear-gradient(180deg, #090d16 0%, #0f172a 50%, #1e293b 100%)"
     sun_orb_html = ""
 
 # =========================================================================================
-# 5. INDUSTRIAL / SCIENTIFIC CSS ARCHITECTURE & BALANCED TYPOGRAPHY
+# 5. INDUSTRIAL GLASSMORPHIC CSS STYLING
 # =========================================================================================
 st.markdown(f"""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap');
 
-    html, body, [class*="css"] {{
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-        color: #0f172a;
+    html, body, [data-testid="stAppViewContainer"] {{
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+        background: {bg_gradient} !important;
+        background-attachment: fixed !important;
+        color: #0f172a !important;
     }}
-
-    .stApp {{
-        background: {bg_gradient};
-        background-attachment: fixed;
+    
+    [data-testid="stHeader"] {{
+        background: transparent !important;
+        height: 0px !important;
     }}
 
     .block-container {{
-        padding-top: 1.2rem !important;
-        padding-bottom: 2.0rem !important;
-        padding-left: 2.0rem !important;
-        padding-right: 2.0rem !important;
-        max-width: 1680px !important;
-        margin: 0 auto !important;
-        position: relative !important;
-        z-index: 2 !important;
+        padding-top: 1rem !important;
+        padding-bottom: 2rem !important;
+        padding-left: 2rem !important;
+        padding-right: 2rem !important;
+        max-width: 1750px !important;
     }}
 
-    .header-bar,
-    .dashboard-card,
-    div[data-testid="stVerticalBlockBorderWrapper"],
-    .hero-power-card,
-    .snapshot-card,
-    .table-header-pill,
-    div[data-testid="stDataFrame"] {{
-        position: relative !important;
-        z-index: 2 !important;
+    /* Glassmorphic White Container Cards */
+    div[data-testid="stVerticalBlock"] > div[data-testid="stVerticalBlockBorderWrapper"] {{
+        background: rgba(255, 255, 255, 0.94) !important;
+        backdrop-filter: blur(12px) !important;
+        border: 1px solid rgba(226, 232, 240, 0.85) !important;
+        border-radius: 12px !important;
+        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04) !important;
+        padding: 12px 14px !important;
+        transition: transform 0.2s ease, box-shadow 0.2s ease !important;
     }}
 
-    /* Global Icon Wrapper */
-    .ui-icon {{
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        vertical-align: middle;
-        line-height: 0;
-    }}
-    .ui-icon svg {{
-        display: block;
+    div[data-testid="stVerticalBlock"] > div[data-testid="stVerticalBlockBorderWrapper"]:hover {{
+        box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06) !important;
     }}
 
-    /* Header Bar */
-    .header-bar {{
-        background: rgba(255, 255, 255, 0.94);
-        backdrop-filter: blur(14px);
-        -webkit-backdrop-filter: blur(14px);
-        border: 1px solid rgba(255, 255, 255, 0.95);
-        border-radius: 12px;
-        padding: 10px 18px;
-        margin-bottom: 12px;
-        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+    /* Formal Header Bar */
+    .formal-header-bar {{
         display: flex;
         align-items: center;
         justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 10px;
+        background: rgba(255, 255, 255, 0.96);
+        backdrop-filter: blur(14px);
+        border: 1px solid rgba(226, 232, 240, 0.85);
+        border-radius: 12px;
+        padding: 10px 18px;
+        margin-bottom: 12px;
+        box-shadow: 0 2px 10px rgba(15, 23, 42, 0.03);
     }}
-    .header-title-box {{
+    .header-left-group {{
         display: flex;
-        flex-direction: column;
-        gap: 2px;
+        align-items: center;
+        gap: 12px;
     }}
-    .header-main-title {{
-        font-size: 28px;
+    .header-title-text {{
+        font-size: 20px;
         font-weight: 700;
-        letter-spacing: -0.3px;
         color: #0f172a;
+        letter-spacing: -0.2px;
+    }}
+    .header-pills-group {{
         display: flex;
         align-items: center;
-        gap: 9px;
-        line-height: 1.15;
-    }}
-    .header-subtitle {{
-        font-size: 11.5px;
-        font-weight: 400;
-        letter-spacing: 0.1px;
-        color: #475569;
-    }}
-    .header-badges {{
-        display: flex;
-        align-items: center;
-        gap: 7px;
-        flex-wrap: wrap;
+        gap: 8px;
     }}
     .header-pill {{
-        background: rgba(248, 250, 252, 0.92);
-        border: 1px solid rgba(226, 232, 240, 0.9);
-        border-radius: 20px;
-        padding: 4px 11px;
-        font-size: 11.5px;
-        font-weight: 500;
-        color: #334155;
         display: inline-flex;
         align-items: center;
         gap: 6px;
+        background: rgba(248, 250, 252, 0.90);
+        border: 1px solid rgba(226, 232, 240, 0.85);
+        border-radius: 8px;
+        padding: 5px 10px;
+        font-size: 11.5px;
+        font-weight: 500;
+        color: #334155;
     }}
-    .header-pill-val {{
-        font-weight: 600;
-        color: #0f172a;
-    }}
-    .status-dot {{
-        width: 7.5px;
-        height: 7.5px;
-        border-radius: 50%;
-        display: inline-block;
-    }}
-    .status-dot.green {{ background-color: #10b981; box-shadow: 0 0 6px rgba(16, 185, 129, 0.4); }}
-    .status-dot.amber {{ background-color: #f59e0b; box-shadow: 0 0 6px rgba(245, 158, 11, 0.4); }}
-    .status-dot.red {{ background-color: #ef4444; box-shadow: 0 0 6px rgba(239, 68, 68, 0.4); }}
 
-    /* Cards Base Styling */
-    .dashboard-card {{
-        background: {card_bg};
-        backdrop-filter: blur(14px);
-        -webkit-backdrop-filter: blur(14px);
-        border: 1px solid rgba(200, 210, 225, 0.65);
-        border-radius: 14px;
-        padding: 11px 14px;
-        box-shadow: 0 2px 10px rgba(15, 23, 42, 0.035);
-        margin-bottom: 9px;
-    }}
-    .card-title {{
-        font-size: 15px;
-        font-weight: 600;
-        letter-spacing: 0.1px;
-        color: #0f172a;
-        margin-bottom: 10px;
+    /* Expanded Fullscreen Top Banner */
+    .fullscreen-exit-banner {{
         display: flex;
         align-items: center;
-        gap: 7px;
-        padding-bottom: 6px;
-        border-bottom: 1px solid rgba(226, 232, 240, 0.75);
+        justify-content: space-between;
+        background: #0f172a;
+        color: #ffffff;
+        border-radius: 12px;
+        padding: 12px 20px;
+        margin-bottom: 14px;
+        box-shadow: 0 6px 24px rgba(15, 23, 42, 0.20);
+    }}
+    .fullscreen-banner-title {{
+        font-size: 17px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: #f8fafc;
     }}
 
-    /* HERO POWER KPI (Standardized in W, 40px Font Size) */
-    .hero-power-card {{
-        background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 247, 237, 0.88) 100%);
-        border: 1px solid rgba(254, 215, 170, 0.85);
-        border-radius: 14px;
-        padding: 13px 16px;
-        box-shadow: 0 3px 12px rgba(234, 88, 12, 0.04);
-        margin-bottom: 9px;
-        text-align: left;
+    /* Hero Generated Power KPI Card */
+    .hero-kpi-card {{
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(254, 243, 199, 0.35));
+        border: 1px solid rgba(251, 191, 36, 0.45);
+        border-radius: 12px;
+        padding: 14px 16px;
+        box-shadow: 0 4px 16px rgba(245, 158, 11, 0.08);
+        margin-bottom: 12px;
     }}
-    .hero-title {{
-        font-size: 13.5px;
+    .hero-kpi-title {{
+        font-size: 11.5px;
         font-weight: 600;
-        letter-spacing: 0.2px;
-        color: #c2410c;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #b45309;
         display: flex;
         align-items: center;
         gap: 6px;
-        margin-bottom: 4px;
+        margin-bottom: 6px;
     }}
-    .hero-val {{
-        font-size: 40px;
-        font-weight: 700;
-        letter-spacing: -0.8px;
+    .hero-kpi-val {{
+        font-size: 38px;
+        font-weight: 800;
         color: #0f172a;
         line-height: 1.1;
+        font-family: 'JetBrains Mono', monospace;
     }}
-    .hero-unit {{
-        font-size: 17px;
-        font-weight: 500;
-        color: #ea580c;
+    .hero-kpi-unit {{
+        font-size: 18px;
+        font-weight: 600;
+        color: #d97706;
         margin-left: 4px;
     }}
-    .hero-sub {{
-        font-size: 11.5px;
-        font-weight: 400;
-        color: #64748b;
-        margin-top: 4px;
-    }}
 
-    /* KPI Grid & Items */
-    .kpi-grid {{
+    /* 2x3 Metric Grid */
+    .metric-grid-2x3 {{
         display: grid;
         grid-template-columns: repeat(2, 1fr);
-        gap: 8px;
-        margin-bottom: 10px;
+        gap: 10px;
+        margin-bottom: 12px;
     }}
-    .kpi-item {{
-        background: rgba(248, 250, 252, 0.88);
-        border: 1px solid rgba(226, 232, 240, 0.88);
+    .metric-cell {{
+        background: rgba(248, 250, 252, 0.90);
+        border: 1px solid rgba(226, 232, 240, 0.85);
         border-radius: 10px;
-        padding: 9px 11px;
-        text-align: left;
+        padding: 10px 12px;
+        transition: all 0.2s ease;
     }}
-    .kpi-item-label {{
-        font-size: 11px;
-        font-weight: 500;
+    .metric-cell:hover {{
+        background: #ffffff;
+        border-color: #cbd5e1;
+    }}
+    .metric-cell-lbl {{
+        font-size: 10.5px;
+        font-weight: 600;
         color: #64748b;
-        margin-bottom: 3px;
+        text-transform: uppercase;
         display: flex;
         align-items: center;
         gap: 5px;
+        margin-bottom: 4px;
     }}
-    .kpi-item-val {{
-        font-size: 22px;
+    .metric-cell-val {{
+        font-size: 18px;
         font-weight: 700;
         color: #0f172a;
-        line-height: 1.15;
+        font-family: 'JetBrains Mono', monospace;
     }}
-    .kpi-item-unit {{
-        font-size: 11px;
+    .metric-cell-unit {{
+        font-size: 11.5px;
         font-weight: 500;
         color: #64748b;
         margin-left: 3px;
     }}
 
-    /* SOLAR PRODUCTION STATUS (Left Column Bottom Section) */
-    .prod-status-grid {{
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
+    /* Production Status & System Status */
+    .dashboard-card {{
+        background: rgba(255, 255, 255, 0.96);
+        border: 1px solid rgba(226, 232, 240, 0.85);
+        border-radius: 12px;
+        padding: 12px 14px;
+        margin-bottom: 12px;
     }}
-    .prod-status-row {{
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 5px 8px;
-        background: rgba(248, 250, 252, 0.88);
-        border: 1px solid rgba(226, 232, 240, 0.88);
-        border-radius: 8px;
-    }}
-    .prod-status-label {{
-        font-size: 11.5px;
-        font-weight: 500;
-        color: #64748b;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }}
-    .prod-status-val {{
-        font-size: 13.5px;
+    .card-title {{
+        font-size: 12px;
         font-weight: 700;
         color: #0f172a;
-    }}
-    .prod-status-unit {{
-        font-size: 11px;
-        font-weight: 500;
-        color: #d97706;
-        margin-left: 2px;
-    }}
-
-    /* UNIFIED CHART CONTAINERS (Fixing Overlap & Night Layering) */
-    div[data-testid="stVerticalBlockBorderWrapper"] {{
-        background: rgba(255, 255, 255, 0.93) !important;
-        backdrop-filter: blur(14px) !important;
-        border-radius: 14px !important;
-        border: 1px solid rgba(200, 210, 225, 0.65) !important;
-        box-shadow: 0 2px 10px rgba(15, 23, 42, 0.035) !important;
-        padding: 9px 12px 11px 12px !important;
-        margin-bottom: 8px !important;
-    }}
-    div[data-testid="stVerticalBlockBorderWrapper"] > div {{
-        gap: 0.25rem !important;
-    }}
-    div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stVegaLiteChart"],
-    div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stArrowVegaLiteChart"] {{
-        background-color: transparent !important;
-        border: none !important;
-        box-shadow: none !important;
-        padding: 0 !important;
-        margin: 0 !important;
-    }}
-    div[data-testid="stVegaLiteChart"] summary, div[data-testid="stArrowVegaLiteChart"] summary {{
-        display: none !important;
-    }}
-
-    .chart-card-header {{
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        padding-bottom: 5px;
-        margin-bottom: 4px;
+        gap: 7px;
+        padding-bottom: 8px;
+        margin-bottom: 8px;
         border-bottom: 1px solid rgba(226, 232, 240, 0.75);
     }}
-    .chart-header-title {{
-        font-size: 14px;
-        font-weight: 600;
-        color: #0f172a;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        letter-spacing: 0.1px;
-    }}
-
-    /* Compact Chart Empty State (Guarantees Consistent Dimensions & Zero Collapse) */
-    .chart-empty-state {{
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        background: rgba(248, 250, 252, 0.65);
-        border: 1px dashed rgba(203, 213, 225, 0.8);
-        border-radius: 8px;
-        text-align: center;
-        margin-top: 2px;
-    }}
-    .chart-empty-state.main-empty {{
-        height: 270px;
-    }}
-    .chart-empty-state.sec-empty {{
-        height: 165px;
-    }}
-    .empty-state-title {{
-        font-size: 12px;
-        font-weight: 600;
-        color: #475569;
-        margin-top: 6px;
-    }}
-    .empty-state-sub {{
-        font-size: 10.5px;
-        color: #94a3b8;
-        margin-top: 2px;
-    }}
-
-    /* Timeframe Selector Capsule: Segmented Control */
-    div[data-testid="stRadio"] {{
-        display: flex !important;
-        justify-content: center !important;
-        margin-bottom: 5px;
-    }}
-    div[role="radiogroup"] {{
-        display: inline-flex !important;
-        justify-content: center !important;
-        align-items: center !important;
-        background: rgba(255, 255, 255, 0.94) !important;
-        padding: 3px 6px !important;
-        border-radius: 30px !important;
-        border: 1px solid rgba(200, 210, 225, 0.70) !important;
-        box-shadow: 0 1px 6px rgba(15, 23, 42, 0.03) !important;
-        gap: 3px;
-    }}
-    div[role="radiogroup"] label {{
-        padding: 3px 10px !important;
-        border-radius: 20px !important;
-        margin: 0 !important;
-        cursor: pointer !important;
-        transition: all 0.15s ease !important;
-    }}
-    div[role="radiogroup"] label:has(input:checked) {{
-        background: #0f172a !important;
-    }}
-    div[role="radiogroup"] label:has(input:checked) p {{
-        color: #ffffff !important;
-        font-weight: 600 !important;
-    }}
-    div[role="radiogroup"] label p {{
-        font-size: 11.5px !important;
-        font-weight: 500 !important;
-        color: #334155 !important;
-        margin: 0 !important;
-    }}
-
-    /* Window Span Caption */
-    .timeframe-caption-box {{
-        display: flex;
-        justify-content: center;
-        margin-bottom: 7px;
-    }}
-    .timeframe-caption {{
-        font-size: 11.5px;
-        color: #475569;
-        background: rgba(255, 255, 255, 0.92);
-        padding: 3px 12px;
-        border-radius: 12px;
-        border: 1px solid rgba(226, 232, 240, 0.85);
-        box-shadow: 0 1px 4px rgba(15, 23, 42, 0.02);
-    }}
-
-    /* PERFORMANCE SNAPSHOT 5-COLUMN FULL-WIDTH GRID */
-    .snapshot-grid {{
-        display: grid;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
-        gap: 10px;
-    }}
-    @media (max-width: 1024px) {{
-        .snapshot-grid {{
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-        }}
-    }}
-    @media (max-width: 640px) {{
-        .snapshot-grid {{
-            grid-template-columns: repeat(1, minmax(0, 1fr));
-        }}
-    }}
-    .snapshot-card {{
-        background: rgba(248, 250, 252, 0.88);
-        border: 1px solid rgba(226, 232, 240, 0.9);
-        border-radius: 10px;
-        padding: 12px 14px;
-        text-align: left;
-    }}
-    .snapshot-label {{
-        font-size: 11px;
-        font-weight: 500;
-        color: #64748b;
-        margin-bottom: 4px;
-        display: flex;
-        align-items: center;
-        gap: 5px;
-    }}
-    .snapshot-val {{
-        font-size: 17px;
-        font-weight: 700;
-        color: #0f172a;
-        line-height: 1.2;
-    }}
-    .snapshot-unit {{
-        font-size: 11.5px;
-        font-weight: 500;
-        color: #d97706;
-        margin-left: 2px;
-    }}
-
-    /* SYSTEM STATUS ROWS: COMPACT ROWS WITH 11.5px TYPOGRAPHY */
     .status-row {{
         display: flex;
-        justify-content: space-between;
         align-items: center;
-        padding: 4px 0;
-        border-bottom: 1px solid #f8fafc;
+        justify-content: space-between;
+        padding: 5px 0;
         font-size: 11.5px;
+        border-bottom: 1px solid rgba(241, 245, 249, 0.9);
     }}
-    .status-row:last-child {{ border-bottom: none; }}
+    .status-row:last-child {{
+        border-bottom: none;
+    }}
     .status-label {{
         color: #475569;
-        font-weight: 500;
-        display: inline-flex;
+        display: flex;
         align-items: center;
         gap: 6px;
     }}
     .status-val {{
         font-weight: 600;
         color: #0f172a;
+        font-family: 'JetBrains Mono', monospace;
     }}
-    .status-badge-inline {{
-        padding: 2px 8px;
-        border-radius: 6px;
-        font-size: 10.5px;
-        font-weight: 600;
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-    }}
-    .status-green {{ background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }}
-    .status-amber {{ background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }}
-    .status-red {{ background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }}
 
-    /* Table Typography & Header Pill */
-    .table-header-pill {{
-        background: rgba(255, 255, 255, 0.96);
-        backdrop-filter: blur(14px);
-        border-radius: 8px;
-        padding: 6px 14px;
-        border: 1px solid rgba(255, 255, 255, 0.95);
-        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
-        display: inline-flex;
+    /* Timeframe Selector Capsule */
+    div[data-testid="stRadio"] > div {{
+        display: flex !important;
+        flex-direction: row !important;
+        gap: 6px !important;
+        background: rgba(255, 255, 255, 0.94) !important;
+        border: 1px solid rgba(226, 232, 240, 0.85) !important;
+        border-radius: 20px !important;
+        padding: 3px 6px !important;
+        width: fit-content !important;
+        box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03) !important;
+        margin-bottom: 8px !important;
+    }}
+    div[data-testid="stRadio"] label {{
+        background: transparent !important;
+        border: none !important;
+        border-radius: 14px !important;
+        padding: 4px 12px !important;
+        font-size: 11.5px !important;
+        font-weight: 600 !important;
+        color: #475569 !important;
+        cursor: pointer !important;
+        transition: all 0.15s ease !important;
+    }}
+    div[data-testid="stRadio"] label:hover {{
+        color: #0f172a !important;
+    }}
+
+    /* Chart Header & Placeholder */
+    .chart-card-header {{
+        display: flex;
         align-items: center;
-        gap: 7px;
-        font-size: 14px;
+        justify-content: space-between;
+        padding-bottom: 6px;
+        margin-bottom: 6px;
+        border-bottom: 1px solid rgba(226, 232, 240, 0.75);
+    }}
+    .chart-header-title {{
+        font-size: 13.5px;
         font-weight: 600;
         color: #0f172a;
-        margin-bottom: 8px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
     }}
-    div[data-testid="stDataFrame"] * {{
-        font-size: 11px !important;
+    .chart-empty-state {{
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: rgba(248, 250, 252, 0.7);
+        border: 1px dashed rgba(203, 213, 225, 0.85);
+        border-radius: 8px;
+        text-align: center;
+    }}
+    .chart-empty-state.main-empty {{
+        height: 290px;
+    }}
+    .chart-empty-state.sec-empty {{
+        height: 165px;
+    }}
+    .empty-state-title {{
+        font-size: 12px;
+        font-weight: 500;
+        color: #64748b;
+        margin-top: 6px;
     }}
 
-    /* Sidebar Refinements */
-    div[data-testid="stSidebar"] label, div[data-testid="stSidebar"] p {{
-        font-size: 12px !important;
+    /* Performance Snapshot 5 Metrics Bar */
+    .snapshot-bar {{
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 10px;
+        margin-top: 8px;
+        margin-bottom: 14px;
     }}
-    div[data-testid="stSidebar"] h3 {{
-        font-size: 14px !important;
-        font-weight: 600 !important;
+    .snapshot-card {{
+        background: rgba(255, 255, 255, 0.95);
+        border: 1px solid rgba(226, 232, 240, 0.85);
+        border-radius: 10px;
+        padding: 9px 12px;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.02);
     }}
-
-    /* Download Button */
-    div[data-testid="stDownloadButton"] button {{
-        background-color: #0f172a !important;
-        color: #ffffff !important;
-        border-radius: 8px !important;
-        font-weight: 500 !important;
-        border: 1px solid #1e293b !important;
-        padding: 6px 14px !important;
-        font-size: 12px !important;
-        transition: background 0.2s ease !important;
-        width: 100% !important;
+    .snapshot-lbl {{
+        font-size: 10px;
+        font-weight: 600;
+        color: #64748b;
+        text-transform: uppercase;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin-bottom: 2px;
     }}
-    div[data-testid="stDownloadButton"] button:hover {{
-        background-color: #1e293b !important;
-        border-color: #334155 !important;
+    .snapshot-val {{
+        font-size: 17px;
+        font-weight: 700;
+        color: #0f172a;
+        font-family: 'JetBrains Mono', monospace;
     }}
 </style>
 """, unsafe_allow_html=True)
@@ -914,7 +619,6 @@ def load_data_from_csv():
                         df['power_W'] = df['power_mW'] / 1000.0
                     else:
                         df['power_W'] = (df['voltage_V'] * df['current_mA']) / 1000.0
-                
                 if 'energy_kWh' not in df.columns:
                     if 'energy_mWh' in df.columns:
                         df['energy_kWh'] = df['energy_mWh'] / 1_000_000.0
@@ -922,18 +626,16 @@ def load_data_from_csv():
                         df['energy_kWh'] = df['energy_Wh'] / 1000.0
                     else:
                         df['energy_kWh'] = 0.0
-
                 if 'energy_mWh' not in df.columns:
                     df['energy_mWh'] = df['energy_kWh'] * 1_000_000.0
-
                 return df.tail(1500).to_dict('records')
         except Exception:
             pass
     return []
 
-# Thread-safe persistent in-memory singleton data cache across all Streamlit reruns
 @st.cache_resource
 def get_sensor_data():
+    """Thread-safe persistent in-memory singleton data cache across all Streamlit reruns."""
     initial_records = load_data_from_csv()
     initial_energy_mwh = 0.0
     if initial_records:
@@ -948,7 +650,7 @@ def get_sensor_data():
         'current': 0.0,
         'power': 0.0,            # Internal working unit: mW
         'watts': 0.0,            # Irradiance in W/m²
-        'lux': 0.0,
+        'lux': 0.0,              # Illuminance in Lux
         'temp': 0.0,
         'total_energy_mWh': initial_energy_mwh,
         'last_energy_calc_time': None,
@@ -978,8 +680,9 @@ with st.sidebar:
     
     st.markdown("---")
     st.markdown(f"### {get_icon('wifi', size=17, color='#0f172a')} Telemetry Broker")
-    broker_ip = st.text_input("MQTT Server Host", value="broker.emqx.io")
+    broker_ip = st.text_input("Primary MQTT Host", value="broker.emqx.io")
     broker_port = st.number_input("Port Number", value=1883, min_value=1, max_value=65535)
+    fallback_broker = st.text_input("Fallback Broker Host", value="broker.hivemq.com")
     base_topic = st.text_input("Base Topic Tree", value="my_powerplant")
     
     st.markdown("---")
@@ -995,195 +698,191 @@ with st.sidebar:
         solar_data['last_update_time'] = None
         solar_data['log_records'].clear()
         solar_data['msg_count'] = 0
-        if os.path.exists(CSV_BACKUP_FILE):
-            try:
-                os.remove(CSV_BACKUP_FILE)
-            except Exception:
-                pass
-        add_event("info", "Session and data logs reset by operator")
-        print("[RESET] Telemetry session reset by operator")
-        st.rerun()
+        add_event("info", "Telemetry session reset by user.")
 
 # =========================================================================================
 # 8. ROBUST MQTT INGESTION ENGINE (INITIALIZED EXACTLY ONCE)
 # =========================================================================================
-def on_connect(client, userdata, flags, rc, properties=None):
-    if rc == 0:
-        solar_data['mqtt_connected'] = True
-        sub_filter = f"{base_topic}/#"
-        client.subscribe(sub_filter)
-        add_event("info", f"Connected to broker. Subscribed to {sub_filter}")
-        print(f"MQTT connection successful. Subscribed to {sub_filter}")
-    else:
+@st.cache_resource
+def start_mqtt_client(broker: str, port: int, topic: str, fallback_host: str):
+    """Initializes and runs the background MQTT listener with fallback support."""
+    client = mqtt.Client(client_id=f"SolarMonitor_S1_{int(time.time())}", clean_session=True)
+
+    def on_connect(c, userdata, flags, rc):
+        if rc == 0:
+            solar_data['mqtt_connected'] = True
+            c.subscribe(f"{topic}/#")
+            add_event("success", f"Connected to broker: {broker} (subscribed to {topic}/#)")
+        else:
+            solar_data['mqtt_connected'] = False
+            add_event("warning", f"Broker connect refused with rc={rc}")
+
+    def on_disconnect(c, userdata, rc):
         solar_data['mqtt_connected'] = False
-        add_event("error", f"Broker connection failed (Code {rc})")
-        print(f"MQTT connection failed with return code {rc}")
+        solar_data['reconnect_count'] += 1
+        add_event("warning", f"Disconnected from MQTT broker (rc={rc}). Reconnect attempt #{solar_data['reconnect_count']}")
 
-def on_disconnect(client, userdata, *args, **kwargs):
-    solar_data['mqtt_connected'] = False
-    solar_data['reconnect_count'] += 1
-    add_event("warning", "MQTT broker disconnected")
-    print("MQTT broker disconnected. Reconnect attempted.")
+    def on_message(c, userdata, msg):
+        try:
+            payload_str = msg.payload.decode('utf-8', errors='ignore').strip()
+            topic_str = msg.topic.strip()
+            now_dt = datetime.now(tehran_tz)
+            now_iso = now_dt.strftime("%Y-%m-%d %H:%M:%S")
+            now_display = now_dt.strftime("%H:%M:%S")
 
-def on_message(client, userdata, msg):
-    try:
-        topic = msg.topic.lower()
-        payload_str = msg.payload.decode('utf-8', errors='ignore').strip('\x00').strip()
-        val = float(payload_str)
-        t_now = time.time()
-        
-        solar_data['msg_count'] += 1
-        solar_data['last_update_time'] = t_now
-        
-        sensor_name = topic.split('/')[-1]
+            # 1. Topic-based payload parsing
+            if topic_str.endswith('/voltage'):
+                solar_data['voltage'] = float(payload_str)
+            elif topic_str.endswith('/current'):
+                solar_data['current'] = float(payload_str)
+            elif topic_str.endswith('/power'):
+                p_val = float(payload_str)
+                # If incoming is in Watts (small number), convert to mW internally
+                solar_data['power'] = p_val * 1000.0 if p_val < 50.0 else p_val
+            elif topic_str.endswith('/watts'):
+                solar_data['watts'] = float(payload_str) # Irradiance in W/m²
+            elif topic_str.endswith('/lux'):
+                solar_data['lux'] = float(payload_str)
+            elif topic_str.endswith('/temperature'):
+                solar_data['temp'] = float(payload_str)
+            else:
+                # 2. JSON-formatted payload parsing
+                import json
+                try:
+                    p_json = json.loads(payload_str)
+                    if 'voltage' in p_json: solar_data['voltage'] = float(p_json['voltage'])
+                    if 'current' in p_json: solar_data['current'] = float(p_json['current'])
+                    if 'power' in p_json:
+                        pv = float(p_json['power'])
+                        solar_data['power'] = pv * 1000.0 if pv < 50.0 else pv
+                    if 'watts' in p_json: solar_data['watts'] = float(p_json['watts'])
+                    if 'lux' in p_json: solar_data['lux'] = float(p_json['lux'])
+                    if 'temperature' in p_json: solar_data['temp'] = float(p_json['temperature'])
+                except Exception:
+                    pass
 
-        if sensor_name == 'voltage':
-            solar_data['voltage'] = val
-        elif sensor_name == 'current':
-            solar_data['current'] = val
-        elif sensor_name == 'power':
-            solar_data['power'] = val # stored in mW
-        elif sensor_name == 'watts':
-            solar_data['watts'] = val # irradiance in W/m²
-        elif sensor_name == 'lux':
-            solar_data['lux'] = val
-        elif sensor_name in ['temperature', 'temp']:
-            solar_data['temp'] = val
-            
-        # Fallback electrical power computation if sensor payload omitted
-        if sensor_name in ['voltage', 'current'] and solar_data['power'] <= 0.0:
-            solar_data['power'] = solar_data['voltage'] * solar_data['current']
+            # Calculate electrical power if not directly reported
+            if solar_data['power'] == 0.0 and (solar_data['voltage'] > 0 or solar_data['current'] > 0):
+                solar_data['power'] = solar_data['voltage'] * solar_data['current']
 
-        # Accurate Riemann-sum Numerical Energy Integration
-        if solar_data['last_energy_calc_time'] is not None:
-            dt_hours = (t_now - solar_data['last_energy_calc_time']) / 3600.0
-            if 0 < dt_hours < 0.05: # Max 3-minute gap
-                solar_data['total_energy_mWh'] += solar_data['power'] * dt_hours
-        solar_data['last_energy_calc_time'] = t_now
+            # Riemann-sum energy accumulation (in kWh)
+            if solar_data['last_energy_calc_time'] is not None:
+                dt_sec = (now_dt - solar_data['last_energy_calc_time']).total_seconds()
+                if 0 < dt_sec < 60:
+                    power_w = solar_data['power'] / 1000.0
+                    delta_kwh = (power_w * (dt_sec / 3600.0)) / 1000.0
+                    solar_data['total_energy_mWh'] += (delta_kwh * 1_000_000.0)
+            solar_data['last_energy_calc_time'] = now_dt
+            solar_data['last_update_time'] = now_dt
+            solar_data['msg_count'] += 1
 
-        # Periodic snapshot logging (1 Hz rate-limited)
-        dt_tehran = datetime.now(tehran_tz)
-        cur_power_w = solar_data['power'] / 1000.0
-        cur_energy_kwh = energy_mwh_to_kwh(solar_data['total_energy_mWh'])
-        
-        record = {
-            'timestamp': dt_tehran.isoformat(),
-            'time_display': dt_tehran.strftime("%H:%M:%S"),
-            'voltage_V': round(solar_data['voltage'], 2),
-            'current_mA': round(solar_data['current'], 1),
-            'power_W': round(cur_power_w, 4),
-            'energy_kWh': cur_energy_kwh,
-            'energy_mWh': round(solar_data['total_energy_mWh'], 2),
-            'temperature_C': round(solar_data['temp'], 1),
-            'illuminance_lux': round(solar_data['lux'], 1),
-            'irradiance_W_m2': round(solar_data['watts'], 1)
-        }
-        
-        if not solar_data['log_records'] or (t_now - pd.to_datetime(solar_data['log_records'][-1]['timestamp']).timestamp() >= 1.0):
+            # Log record
+            record = {
+                'timestamp': now_iso,
+                'time_display': now_display,
+                'voltage_V': round(solar_data['voltage'], 2),
+                'current_mA': round(solar_data['current'], 2),
+                'power_W': round(solar_data['power'] / 1000.0, 4),
+                'power_mW': round(solar_data['power'], 1),
+                'energy_kWh': round(solar_data['total_energy_mWh'] / 1_000_000.0, 6),
+                'energy_mWh': round(solar_data['total_energy_mWh'], 2),
+                'temperature_C': round(solar_data['temp'], 2),
+                'illuminance_lux': round(solar_data['lux'], 1),
+                'irradiance_W_m2': round(solar_data['watts'], 2)
+            }
             solar_data['log_records'].append(record)
             if len(solar_data['log_records']) > 1500:
                 solar_data['log_records'].pop(0)
-            if solar_data['logging_active']:
+
+            if solar_data['logging_active'] and solar_data['msg_count'] % 5 == 0:
                 save_point_to_csv(record)
 
-    except Exception as e:
-        print(f"MQTT message processing error on {msg.topic}: {e}")
-
-@st.cache_resource
-def init_mqtt(broker_host: str, broker_port_num: int, topic_filter: str):
-    print("Creating MQTT client...")
-    try:
-        client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1)
-    except Exception:
-        try:
-            client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
-        except Exception:
-            client = mqtt.Client()
+        except Exception as ex:
+            add_event("warning", f"Payload processing error: {str(ex)}")
 
     client.on_connect = on_connect
     client.on_disconnect = on_disconnect
     client.on_message = on_message
-    
-    print(f"Connecting to {broker_host}:{broker_port_num}...")
-    try:
-        client.connect(broker_host, int(broker_port_num), keepalive=60)
-    except Exception as err:
-        print(f"MQTT connection to {broker_host} failed: {err}")
-        if broker_host != "broker.hivemq.com":
-            print("Attempting fallback connection to broker.hivemq.com:1883...")
-            try:
-                client.connect("broker.hivemq.com", 1883, keepalive=60)
-                print("Fallback connection to broker.hivemq.com succeeded")
-            except Exception as err2:
-                print(f"Fallback connection failed: {err2}")
-                add_event("error", f"MQTT connection failed: {err2}")
 
-    client.loop_start()
+    try:
+        client.connect_async(broker, port, keepalive=60)
+        client.loop_start()
+    except Exception as e:
+        add_event("warning", f"Failed to connect primary {broker}: {e}. Retrying fallback {fallback_host}...")
+        try:
+            client.connect_async(fallback_host, 1883, keepalive=60)
+            client.loop_start()
+        except Exception as ex:
+            add_event("danger", f"Both brokers failed: {ex}")
     return client
 
-mqtt_client = init_mqtt(broker_ip, int(broker_port), base_topic)
+mqtt_client = start_mqtt_client(broker_ip, int(broker_port), base_topic, fallback_broker)
 
 # =========================================================================================
 # 9. TELEMETRY FRESHNESS & DIAGNOSTICS
 # =========================================================================================
+now_cur = datetime.now(tehran_tz)
+weather_info = get_tehran_weather_data()
+tehran_temp = weather_info['temp_str']
+sky_icon_name = weather_info['icon_name']
+
 if solar_data['last_update_time']:
-    sec_since_update = time.time() - solar_data['last_update_time']
-    if sec_since_update < 60:
-        freshness_label = f"{int(sec_since_update)}s ago"
-    elif sec_since_update < 3600:
-        freshness_label = f"{int(sec_since_update / 60)}m ago"
-    else:
-        freshness_label = f"{sec_since_update / 3600:.1f}h ago"
-        
-    if sec_since_update > 30:
-        health_status = "Warning: Data Delayed"
-        health_color = "amber"
-        system_normal = False
-    else:
-        health_status = "System Normal"
-        health_color = "green"
-        system_normal = True
+    age_sec = (now_cur - solar_data['last_update_time']).total_seconds()
+    freshness_txt = f"{int(age_sec)}s ago" if age_sec < 60 else f"{int(age_sec/60)}m ago"
+    health_status = "Nominal" if age_sec < 30 else "Stale Telemetry"
+    health_color = "green" if age_sec < 30 else "amber"
 else:
-    freshness_label = "Waiting for data..."
-    health_status = "Waiting for Telemetry"
-    health_color = "amber"
-    system_normal = False
+    freshness_txt = "Waiting for data..."
+    health_status = "Disconnected"
+    health_color = "red"
 
+mqtt_badge_txt = "Online" if solar_data['mqtt_connected'] else "Disconnected"
 mqtt_badge_cls = "status-green" if solar_data['mqtt_connected'] else "status-red"
-mqtt_badge_txt = "Connected" if solar_data['mqtt_connected'] else "Disconnected"
 
 # =========================================================================================
-# 10. REFINED FORMAL HEADER BAR (PAGE TITLE 28px)
+# 10. REFINED FORMAL HEADER BAR
 # =========================================================================================
+jalali_now = jdatetime.datetime.now()
+jalali_str = jalali_now.strftime("%Y/%m/%d")
+gregorian_str = now_cur.strftime("%Y-%m-%d")
+time_str = now_cur.strftime("%H:%M:%S")
+
 st.markdown(f"""
-<div class="header-bar">
-    <div class="header-title-box">
-        <div class="header-main-title">{get_icon('sun', size=26, color='#ea580c', stroke_width=2.2)} SOLAR POWER MONITORING</div>
-        <div class="header-subtitle">Clean Energy · Real-time Data · A Greener Tomorrow</div>
+<div class="formal-header-bar">
+    <div class="header-left-group">
+        <span style="display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 8px; background: rgba(234, 88, 12, 0.1);">
+            {get_icon('sun', size=20, color='#ea580c')}
+        </span>
+        <div>
+            <div class="header-title-text">SOLAR PHOTOVOLTAIC POWER MONITORING</div>
+            <div style="font-size: 11px; color: #64748b; margin-top: 1px;">Scientific Telemetry, Solar Radiation & Ephemeris Analytics</div>
+        </div>
     </div>
-    <div class="header-badges">
-        <div class="header-pill">{get_icon('calendar', size=16, color='#64748b')} <span class="header-pill-val">{jalali_date_str}</span> <span style="font-size:10.5px; opacity:0.75;">({gregorian_date_str})</span></div>
-        <div class="header-pill">{get_icon('clock', size=16, color='#64748b')} <span class="header-pill-val">{time_str}</span></div>
-        <div class="header-pill">{get_icon(sky_icon_name, size=16, color='#0284c7')} <span class="header-pill-val">{tehran_temp}{f" · {weather_info['sky_condition']}" if weather_info['available'] and weather_info['sky_condition'] else ""}</span> <span style="font-size:10.5px; opacity:0.75;">Tehran</span></div>
-        <div class="header-pill {mqtt_badge_cls}"><span class="status-dot {'green' if solar_data['mqtt_connected'] else 'red'}"></span> {mqtt_badge_txt}</div>
-        <div class="header-pill">{get_icon('activity', size=16, color='#64748b')} <span class="header-pill-val">{freshness_label}</span></div>
-        <div class="header-pill">{solar_phase_icon} <span class="header-pill-val">{solar_phase}</span></div>
+    <div class="header-pills-group">
+        <div class="header-pill">{get_icon(sky_icon_name, size=15, color='#0284c7')} <span>Tehran: <b>{tehran_temp}</b></span></div>
+        <div class="header-pill">{get_icon('compass', size=15, color='#eab308')} <span>Solar Alt: <b>{solar_elev:.1f}°</b></span></div>
+        <div class="header-pill">{get_icon('clock', size=15, color='#475569')} <span>{jalali_str} | {time_str}</span></div>
+        <div class="header-pill"><span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: {'#10b981' if solar_data['mqtt_connected'] else '#ef4444'};"></span> <span>MQTT: <b>{mqtt_badge_txt}</b></span></div>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-# Convert records to DataFrame for analytical slicing
+# Prepare DataFrame for Analysis
 df_raw = pd.DataFrame(solar_data['log_records'])
-df_plot = pd.DataFrame()
-current_power_w = solar_data['power'] / 1000.0 if solar_data['power'] > 0 else 0.0
-
-if not df_raw.empty and 'timestamp' in df_raw.columns:
+if not df_raw.empty:
     df_raw['dt'] = pd.to_datetime(df_raw['timestamp'])
+    if df_raw['dt'].dt.tz is None:
+        df_raw['dt'] = df_raw['dt'].dt.tz_localize(tehran_tz)
 
-# Pre-determine active timeframe from session state to ensure cross-zone analytical consistency
-active_timeframe = st.session_state.get('chart_timeframe', '10 Min')
-span_caption_text = "Displaying recent telemetry stream"
-if not df_raw.empty and 'dt' in df_raw.columns:
+# Active timeframe filter
+if 'chart_timeframe' not in st.session_state:
+    st.session_state['chart_timeframe'] = "10 Min"
+
+active_timeframe = st.session_state['chart_timeframe']
+if df_raw.empty:
+    df_plot = pd.DataFrame()
+    span_caption_text = "Waiting for incoming telemetry packets..."
+else:
     t_max = df_raw['dt'].max()
     if active_timeframe == "10 Min":
         cutoff = t_max - timedelta(minutes=10)
@@ -1201,70 +900,174 @@ if not df_raw.empty and 'dt' in df_raw.columns:
         df_plot = df_raw.copy()
         span_caption_text = f"Window: Full Session History ({len(df_plot)} points recorded)"
 
-# Calculate Solar Irradiance Variability on active analytical window
 variability_info = calculate_solar_variability(df_plot)
+has_chart_data = not df_plot.empty and len(df_plot) >= 2
+
+# Helper formatting functions
+def format_power_w(val_w):
+    return f"{val_w:.3f}" if val_w < 10 else f"{val_w:.2f}"
+
+def format_energy_kwh(val_kwh):
+    return f"{val_kwh:.6f}" if val_kwh < 0.01 else f"{val_kwh:.4f}"
+
+current_power_w = solar_data['power'] / 1000.0
+current_energy_kwh = solar_data['total_energy_mWh'] / 1_000_000.0
 
 # =========================================================================================
-# 11. THREE-ZONE RESPONSIVE LAYOUT (LEFT / CENTER / RIGHT)
+# EXPANDED / FULLSCREEN INSPECTION VIEW (CONDITIONAL OVERLAY)
 # =========================================================================================
-col_left, col_center, col_right = st.columns([1.05, 2.55, 1.05], gap="medium")
+if st.session_state['chart_expanded']:
+    # Top Persistent Exit Fullscreen Banner
+    banner_col1, banner_col2 = st.columns([8, 2])
+    with banner_col1:
+        st.markdown(f"""
+        <div class="fullscreen-banner-title">
+            {get_icon('eye', size=22, color='#f59e0b')}
+            <span>FULLSCREEN TELEMETRY INSPECTION — ILLUMINANCE (LUX)</span>
+        </div>
+        """, unsafe_allow_html=True)
+    with banner_col2:
+        if st.button("✖ Exit Fullscreen / Back", type="primary", use_container_width=True):
+            st.session_state['chart_expanded'] = False
+            st.rerun()
+
+    with st.container(border=True):
+        # Timeframe Capsule Selector inside Fullscreen
+        timeframe_labels = ["10 Min", "1 Hour", "Today", "All Time"]
+        new_tf = st.radio(
+            "Chart Window Span (Fullscreen)",
+            options=timeframe_labels,
+            index=timeframe_labels.index(active_timeframe),
+            key="fs_chart_timeframe",
+            horizontal=True,
+            label_visibility="collapsed"
+        )
+        if new_tf != active_timeframe:
+            st.session_state['chart_timeframe'] = new_tf
+            st.rerun()
+
+        if has_chart_data:
+            t_min = df_plot['dt'].min()
+            t_max = df_plot['dt'].max()
+            time_fmt = '%H:%M:%S' if active_timeframe in ["10 Min", "1 Hour"] else '%H:%M'
+            
+            fig_fs = go.Figure()
+            
+            # Atmospheric weather bands
+            if weather_info['available'] and weather_info['hourly_schedule']:
+                bands_df = build_weather_bands(t_min, t_max, weather_info['hourly_schedule'], weather_info['sky_condition'])
+                for _, b_row in bands_df.iterrows():
+                    c_name = str(b_row['condition']).lower()
+                    band_fill = 'rgba(254, 240, 138, 0.16)' if 'clear' in c_name else ('rgba(186, 230, 253, 0.16)' if 'partly' in c_name else 'rgba(203, 213, 225, 0.18)')
+                    fig_fs.add_vrect(
+                        x0=b_row['start'], x1=b_row['end'],
+                        fillcolor=band_fill, layer='below', line_width=0,
+                        annotation_text=str(b_row['condition']), annotation_position="top left",
+                        annotation=dict(font_size=10, font_color="#94a3b8")
+                    )
+
+            # Illuminance line with area fill
+            fig_fs.add_trace(go.Scatter(
+                x=df_plot['dt'],
+                y=df_plot['illuminance_lux'],
+                mode='lines',
+                name='Illuminance (Lux)',
+                line=dict(color='#f59e0b', width=2.8),
+                fill='tozeroy',
+                fillcolor='rgba(245, 158, 11, 0.08)',
+                hovertemplate='<b>%{x|%H:%M:%S}</b><br>Illuminance: <b>%{y:,.0f} Lux</b><extra></extra>'
+            ))
+            
+            fig_fs.update_layout(
+                height=650,
+                margin=dict(l=55, r=30, t=30, b=35),
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                hovermode='x',
+                dragmode='zoom',
+                xaxis=dict(
+                    showgrid=True, gridcolor='rgba(226, 232, 240, 0.65)',
+                    tickformat=time_fmt, tickfont=dict(size=11, color='#64748b'),
+                    showspikes=True, spikethickness=1, spikedash='dot', spikemode='across'
+                ),
+                yaxis=dict(
+                    title=dict(text='Illuminance (Lux)', font=dict(size=13, color='#d97706', weight=600)),
+                    showgrid=True, gridcolor='rgba(226, 232, 240, 0.65)',
+                    tickfont=dict(size=11, color='#64748b'),
+                    showspikes=True, spikethickness=1, spikedash='dot'
+                )
+            )
+            
+            cfg_fs = {
+                'responsive': True, 'scrollZoom': True, 'displayModeBar': True,
+                'displaylogo': False,
+                'toImageButtonOptions': {
+                    'format': 'png', 'filename': f'illuminance_expanded_{active_timeframe.lower().replace(" ", "_")}',
+                    'height': 900, 'width': 1800, 'scale': 2
+                }
+            }
+            st.plotly_chart(fig_fs, use_container_width=True, config=cfg_fs)
+        else:
+            st.markdown("""
+            <div class="chart-empty-state" style="height: 500px;">
+                <div class="empty-state-title">Waiting for incoming telemetry to render expanded view...</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    # Exit directly from execution to show only fullscreen inspection
+    if live_update:
+        time.sleep(3.5)
+        st.rerun()
+    st.stop()
+
+# =========================================================================================
+# STANDARD 3-ZONE INDUSTRIAL LAYOUT
+# =========================================================================================
+col_left, col_center, col_right = st.columns([3.2, 5.8, 3.0], gap="medium")
 
 # -----------------------------------------------------------------------------------------
-# ZONE 1 (LEFT): HERO POWER (40px), ELECTRICAL KPIs & SOLAR PRODUCTION STATUS
+# ZONE 1 (LEFT): HERO POWER, 2x3 METRIC GRID, PRODUCTION STATUS
 # -----------------------------------------------------------------------------------------
 with col_left:
-    # 1. Hero KPI: Current Power (40px bold value, dominant visual focus)
-    power_hero_val = format_power_w(current_power_w)
-
+    # 1. Hero Generated Power KPI Card
     st.markdown(f"""
-    <div class="hero-power-card">
-        <div class="hero-title">{get_icon('zap', size=18, color='#ea580c', stroke_width=2.0)} CURRENT GENERATED POWER</div>
-        <div class="hero-val">{power_hero_val}<span class="hero-unit">W</span></div>
-        <div class="hero-sub">Live Photovoltaic Power Output</div>
+    <div class="hero-kpi-card">
+        <div class="hero-kpi-title">{get_icon('zap', size=16, color='#d97706')} GENERATED POWER</div>
+        <div class="hero-kpi-val">{format_power_w(current_power_w)}<span class="hero-kpi-unit">W</span></div>
     </div>
     """, unsafe_allow_html=True)
 
-    # 2. Smaller KPI Grid (Standardized Units: V, mA, W/m², Lux, °C, kWh; Values: 22px)
-    volt_val = solar_data['voltage']
-    curr_val = solar_data['current']
-    irr_val = solar_data['watts']
-    lux_val = solar_data['lux']
-    temp_val = solar_data['temp']
-    
-    total_energy_kwh = energy_mwh_to_kwh(solar_data['total_energy_mWh'])
-    energy_disp_val = format_energy_kwh(total_energy_kwh)
-
+    # 2. 2x3 Metric Grid
     st.markdown(f"""
-    <div class="kpi-grid">
-        <div class="kpi-item">
-            <div class="kpi-item-label">{get_icon('gauge', size=14, color='#0284c7')} Voltage</div>
-            <div class="kpi-item-val">{volt_val:.2f}<span class="kpi-item-unit">V</span></div>
+    <div class="metric-grid-2x3">
+        <div class="metric-cell">
+            <div class="metric-cell-lbl">{get_icon('gauge', size=13, color='#0284c7')} Voltage</div>
+            <div class="metric-cell-val">{solar_data['voltage']:.2f}<span class="metric-cell-unit">V</span></div>
         </div>
-        <div class="kpi-item">
-            <div class="kpi-item-label">{get_icon('activity', size=14, color='#0284c7')} Current</div>
-            <div class="kpi-item-val">{curr_val:.1f}<span class="kpi-item-unit">mA</span></div>
+        <div class="metric-cell">
+            <div class="metric-cell-lbl">{get_icon('activity', size=13, color='#06b6d4')} Current</div>
+            <div class="metric-cell-val">{solar_data['current']:.1f}<span class="metric-cell-unit">mA</span></div>
         </div>
-        <div class="kpi-item">
-            <div class="kpi-item-label">{get_icon('sun', size=14, color='#ea580c')} Irradiance</div>
-            <div class="kpi-item-val">{irr_val:.1f}<span class="kpi-item-unit">W/m²</span></div>
+        <div class="metric-cell">
+            <div class="metric-cell-lbl">{get_icon('sun', size=13, color='#ea580c')} Irradiance</div>
+            <div class="metric-cell-val">{solar_data['watts']:.1f}<span class="metric-cell-unit">W/m²</span></div>
         </div>
-        <div class="kpi-item">
-            <div class="kpi-item-label">{get_icon('sun-dim', size=14, color='#ea580c')} Illuminance</div>
-            <div class="kpi-item-val">{lux_val:,.0f}<span class="kpi-item-unit">Lux</span></div>
+        <div class="metric-cell">
+            <div class="metric-cell-lbl">{get_icon('sun-dim', size=13, color='#f59e0b')} Illuminance</div>
+            <div class="metric-cell-val">{solar_data['lux']:,.0f}<span class="metric-cell-unit">Lux</span></div>
         </div>
-        <div class="kpi-item">
-            <div class="kpi-item-label">{get_icon('thermometer', size=14, color='#ef4444')} Temperature</div>
-            <div class="kpi-item-val">{temp_val:.1f}<span class="kpi-item-unit">°C</span></div>
+        <div class="metric-cell">
+            <div class="metric-cell-lbl">{get_icon('thermometer', size=13, color='#ef4444')} Temperature</div>
+            <div class="metric-cell-val">{solar_data['temp']:.1f}<span class="metric-cell-unit">°C</span></div>
         </div>
-        <div class="kpi-item">
-            <div class="kpi-item-label">{get_icon('battery-charging', size=14, color='#10b981')} Total Energy</div>
-            <div class="kpi-item-val">{energy_disp_val}<span class="kpi-item-unit">kWh</span></div>
+        <div class="metric-cell">
+            <div class="metric-cell-lbl">{get_icon('battery-charging', size=13, color='#10b981')} Energy</div>
+            <div class="metric-cell-val">{format_energy_kwh(current_energy_kwh)}<span class="metric-cell-unit">kWh</span></div>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-    # 3. Solar Production Status (Prominent, natural spacing)
-    # Calculate real today metrics
+    # 3. Solar Production Status Card
     if not df_raw.empty and 'dt' in df_raw.columns:
         t_max_all = df_raw['dt'].max()
         today_midnight = t_max_all.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -1288,439 +1091,352 @@ with col_left:
         gen_state_label = "Standby / Low Light"
         gen_state_color = "#0284c7"
 
-    # Environmental sky status (Only if supported by real weather data)
-    if weather_info['available'] and weather_info['sky_condition']:
-        sky_status_html = f'<span class="prod-status-val">{get_icon(sky_icon_name, size=13, color="#0284c7")} {weather_info["sky_condition"]}</span>'
-    else:
-        sky_status_html = '<span style="font-size: 11px; color: #94a3b8;">Unavailable</span>'
+    sky_status_txt = weather_info['sky_condition'] if weather_info['available'] and weather_info['sky_condition'] else "Unavailable"
 
     st.markdown(f"""
-    <div class="dashboard-card" style="margin-bottom: 0px;">
+    <div class="dashboard-card">
         <div class="card-title">{get_icon('trending-up', size=16, color='#ea580c')} SOLAR PRODUCTION STATUS</div>
-        <div class="prod-status-grid">
-            <div class="prod-status-row">
-                <span class="prod-status-label">{get_icon('zap', size=14, color='#ea580c')} Current Power</span>
-                <span class="prod-status-val">{power_hero_val}<span class="prod-status-unit">W</span></span>
-            </div>
-            <div class="prod-status-row">
-                <span class="prod-status-label">{get_icon('activity', size=14, color='#0284c7')} Peak Today</span>
-                <span class="prod-status-val">{format_power_w(peak_today_w)}<span class="prod-status-unit">W</span></span>
-            </div>
-            <div class="prod-status-row">
-                <span class="prod-status-label">{get_icon('battery-charging', size=14, color='#10b981')} Energy Today</span>
-                <span class="prod-status-val">{format_energy_kwh(e_today_kwh)}<span class="prod-status-unit">kWh</span></span>
-            </div>
-            <div class="prod-status-row">
-                <span class="prod-status-label">{get_icon(sky_icon_name, size=14, color='#0284c7')} Sky Condition</span>
-                {sky_status_html}
-            </div>
-            <div class="prod-status-row">
-                <span class="prod-status-label">{get_icon('activity', size=14, color='#ea580c')} Solar Variability</span>
-                <span style="font-size: 11.5px; font-weight: 600; color: {variability_info['color']};">● {variability_info['label']}</span>
-            </div>
-            <div class="prod-status-row">
-                <span class="prod-status-label">{get_icon('shield-check', size=14, color='#0284c7')} Generation State</span>
-                <span style="font-size: 11.5px; font-weight: 600; color: {gen_state_color};">● {gen_state_label}</span>
-            </div>
+        <div class="status-row">
+            <span class="status-label">{get_icon('zap', size=14, color='#ea580c')} Peak Power Today</span>
+            <span class="status-val">{format_power_w(peak_today_w)} W</span>
+        </div>
+        <div class="status-row">
+            <span class="status-label">{get_icon('battery-charging', size=14, color='#10b981')} Energy Today</span>
+            <span class="status-val">{format_energy_kwh(e_today_kwh)} kWh</span>
+        </div>
+        <div class="status-row">
+            <span class="status-label">{get_icon(sky_icon_name, size=14, color='#0284c7')} Sky Condition</span>
+            <span class="status-val">{sky_status_txt}</span>
+        </div>
+        <div class="status-row">
+            <span class="status-label">{get_icon('activity', size=14, color='#f59e0b')} Solar Variability</span>
+            <span class="status-val" style="color: {variability_info['color']};">● {variability_info['label']}</span>
+        </div>
+        <div class="status-row">
+            <span class="status-label">{get_icon('shield-check', size=14, color='#0284c7')} Generation State</span>
+            <span class="status-val" style="color: {gen_state_color};">● {gen_state_label}</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------------------
-# ZONE 2 (CENTER): TIME FILTER, PRIMARY CHART (280px) & 6 SECONDARY CHARTS (3x2)
+# ZONE 2 (CENTER): PRIMARY ILLUMINANCE (LUX) CHART & 3x2 SECONDARY CHARTS
 # -----------------------------------------------------------------------------------------
 with col_center:
-    # 1. Timeframe Capsule Selector
-    timeframe_labels = ["10 Min", "1 Hour", "Today", "All Time"]
-    selected_timeframe = st.radio(
-        "Chart Window Span",
-        options=timeframe_labels,
-        key="chart_timeframe",
-        horizontal=True,
-        label_visibility="collapsed"
-    )
+    # Top Bar: Timeframe Selector + Fullscreen Button
+    tf_col, btn_col = st.columns([7, 3])
+    with tf_col:
+        timeframe_labels = ["10 Min", "1 Hour", "Today", "All Time"]
+        sel_tf = st.radio(
+            "Chart Window Span",
+            options=timeframe_labels,
+            index=timeframe_labels.index(active_timeframe),
+            key="main_chart_tf",
+            horizontal=True,
+            label_visibility="collapsed"
+        )
+        if sel_tf != active_timeframe:
+            st.session_state['chart_timeframe'] = sel_tf
+            st.rerun()
+    with btn_col:
+        if st.button("⛶ Fullscreen / Expand", key="btn_enter_fs", use_container_width=True):
+            st.session_state['chart_expanded'] = True
+            st.rerun()
 
-    st.markdown(f"""
-    <div class="timeframe-caption-box">
-        <div class="timeframe-caption">{span_caption_text}</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    has_chart_data = not df_plot.empty and len(df_plot) >= 2
-
-    # 2. Main Enclosed Container: Solar Irradiance Chart (Visually Consistent with Current (mA))
+    # PRIMARY CENTRAL CHART (Dedicated to Illuminance in Lux)
     with st.container(border=True):
         st.markdown(f"""
         <div class="chart-card-header">
-            <span class="chart-header-title">{get_icon('sun', size=15, color='#ea580c')} Solar Irradiance (W/m²)</span>
+            <span class="chart-header-title">{get_icon('sun-dim', size=16, color='#f59e0b')} ILLUMINANCE (LUX)</span>
+            <span style="font-size: 11px; font-weight: 600; color: #d97706;">● Current: {solar_data['lux']:,.0f} Lux</span>
         </div>
         """, unsafe_allow_html=True)
-        
+
         if has_chart_data:
-            chart_main = df_plot[['time_display', 'irradiance_W_m2']].rename(columns={'irradiance_W_m2': 'Irradiance (W/m²)'}).set_index('time_display')
-            st.line_chart(chart_main, color=["#ea580c"], height=240, use_container_width=True)
+            t_min = df_plot['dt'].min()
+            t_max = df_plot['dt'].max()
+            time_fmt = '%H:%M:%S' if active_timeframe in ["10 Min", "1 Hour"] else '%H:%M'
+            
+            fig_main = go.Figure()
+            
+            # Weather bands behind curve
+            if weather_info['available'] and weather_info['hourly_schedule']:
+                bands_df = build_weather_bands(t_min, t_max, weather_info['hourly_schedule'], weather_info['sky_condition'])
+                for _, b_row in bands_df.iterrows():
+                    c_name = str(b_row['condition']).lower()
+                    band_fill = 'rgba(254, 240, 138, 0.16)' if 'clear' in c_name else ('rgba(186, 230, 253, 0.16)' if 'partly' in c_name else 'rgba(203, 213, 225, 0.18)')
+                    fig_main.add_vrect(
+                        x0=b_row['start'], x1=b_row['end'],
+                        fillcolor=band_fill, layer='below', line_width=0,
+                        annotation_text=str(b_row['condition']), annotation_position="top left",
+                        annotation=dict(font_size=9, font_color="#94a3b8")
+                    )
+
+            # Smooth curve with subtle gradient area fill
+            fig_main.add_trace(go.Scatter(
+                x=df_plot['dt'],
+                y=df_plot['illuminance_lux'],
+                mode='lines',
+                name='Illuminance',
+                line=dict(color='#f59e0b', width=2.4),
+                fill='tozeroy',
+                fillcolor='rgba(245, 158, 11, 0.08)',
+                hovertemplate='<b>%{x|%H:%M:%S}</b><br>Illuminance: <b>%{y:,.0f} Lux</b><extra></extra>'
+            ))
+            
+            fig_main.update_layout(
+                height=280,
+                margin=dict(l=45, r=20, t=20, b=25),
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                hovermode='x',
+                dragmode='zoom',
+                xaxis=dict(
+                    showgrid=True, gridcolor='rgba(226, 232, 240, 0.60)',
+                    tickformat=time_fmt, tickfont=dict(size=10, color='#64748b'),
+                    showspikes=True, spikethickness=1, spikedash='dot', spikemode='across'
+                ),
+                yaxis=dict(
+                    title=dict(text='Illuminance (Lux)', font=dict(size=11, color='#d97706', weight=600)),
+                    showgrid=True, gridcolor='rgba(226, 232, 240, 0.60)',
+                    tickfont=dict(size=10, color='#64748b'),
+                    showspikes=True, spikethickness=1, spikedash='dot'
+                ),
+                showlegend=False
+            )
+            
+            cfg_main = {
+                'responsive': True, 'scrollZoom': True, 'displayModeBar': True,
+                'displaylogo': False,
+                'modeBarButtonsToRemove': ['lasso2d', 'select2d'],
+                'toImageButtonOptions': {
+                    'format': 'png', 'filename': f'illuminance_{active_timeframe.lower().replace(" ", "_")}',
+                    'height': 600, 'width': 1200, 'scale': 2
+                }
+            }
+            st.plotly_chart(fig_main, use_container_width=True, config=cfg_main)
         else:
             st.markdown(f"""
             <div class="chart-empty-state main-empty">
-                {get_icon('sun', size=28, color='#94a3b8')}
-                <div class="empty-state-title">Waiting for incoming telemetry...</div>
+                {get_icon('sun-dim', size=28, color='#94a3b8')}
+                <div class="empty-state-title">Waiting for incoming telemetry packets...</div>
             </div>
             """, unsafe_allow_html=True)
 
-    # 3. Six Secondary Charts Arranged in a 3 Columns × 2 Rows Grid (165px Each)
+    # 3. Six Secondary Charts (3 Columns x 2 Rows Grid, 165px Each)
+    def render_sparkline_chart(df, col_name, label, color_code, unit_str):
+        if not df.empty and len(df) >= 2:
+            fig_sub = go.Figure()
+            fig_sub.add_trace(go.Scatter(
+                x=df['dt'], y=df[col_name],
+                mode='lines', line=dict(color=color_code, width=1.8),
+                hovertemplate=f'<b>%{{x|%H:%M:%S}}</b><br>{label}: <b>%{{y:.2f}} {unit_str}</b><extra></extra>'
+            ))
+            fig_sub.update_layout(
+                height=165, margin=dict(l=35, r=10, t=10, b=20),
+                paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                hovermode='x',
+                xaxis=dict(showgrid=True, gridcolor='rgba(226, 232, 240, 0.5)', tickformat='%H:%M', tickfont=dict(size=9, color='#94a3b8')),
+                yaxis=dict(showgrid=True, gridcolor='rgba(226, 232, 240, 0.5)', tickfont=dict(size=9, color='#94a3b8')),
+                showlegend=False
+            )
+            cfg_sub = {
+                'responsive': True, 'scrollZoom': True, 'displayModeBar': True,
+                'displaylogo': False,
+                'toImageButtonOptions': {'format': 'png', 'filename': f'{col_name}_snapshot', 'scale': 2}
+            }
+            st.plotly_chart(fig_sub, use_container_width=True, config=cfg_sub)
+        else:
+            st.markdown(f"""
+            <div class="chart-empty-state sec-empty">
+                <div class="empty-state-title">Waiting for data...</div>
+            </div>
+            """, unsafe_allow_html=True)
+
     # Row 1: Voltage (V), Current (mA), Temperature (°C)
     r1_col1, r1_col2, r1_col3 = st.columns(3, gap="small")
-
     with r1_col1:
         with st.container(border=True):
-            st.markdown(f"""
-            <div class="chart-card-header">
-                <span class="chart-header-title">{get_icon('gauge', size=15, color='#0284c7')} Voltage (V)</span>
-            </div>
-            """, unsafe_allow_html=True)
-            if has_chart_data:
-                chart_sub = df_plot[['time_display', 'voltage_V']].rename(columns={'voltage_V': 'Voltage (V)'}).set_index('time_display')
-                st.line_chart(chart_sub, color=["#0284c7"], height=165, use_container_width=True)
-            else:
-                st.markdown(f"""
-                <div class="chart-empty-state sec-empty">
-                    {get_icon('gauge', size=20, color='#94a3b8')}
-                    <div class="empty-state-title">Waiting for incoming telemetry...</div>
-                </div>
-                """, unsafe_allow_html=True)
-
+            st.markdown(f'<div class="chart-card-header"><span class="chart-header-title">{get_icon("gauge", size=14, color="#0284c7")} Voltage (V)</span></div>', unsafe_allow_html=True)
+            render_sparkline_chart(df_plot, 'voltage_V', 'Voltage', '#0284c7', 'V')
     with r1_col2:
         with st.container(border=True):
-            st.markdown(f"""
-            <div class="chart-card-header">
-                <span class="chart-header-title">{get_icon('activity', size=15, color='#06b6d4')} Current (mA)</span>
-            </div>
-            """, unsafe_allow_html=True)
-            if has_chart_data:
-                chart_sub = df_plot[['time_display', 'current_mA']].rename(columns={'current_mA': 'Current (mA)'}).set_index('time_display')
-                st.line_chart(chart_sub, color=["#06b6d4"], height=165, use_container_width=True)
-            else:
-                st.markdown(f"""
-                <div class="chart-empty-state sec-empty">
-                    {get_icon('activity', size=20, color='#94a3b8')}
-                    <div class="empty-state-title">Waiting for incoming telemetry...</div>
-                </div>
-                """, unsafe_allow_html=True)
-
+            st.markdown(f'<div class="chart-card-header"><span class="chart-header-title">{get_icon("activity", size=14, color="#06b6d4")} Current (mA)</span></div>', unsafe_allow_html=True)
+            render_sparkline_chart(df_plot, 'current_mA', 'Current', '#06b6d4', 'mA')
     with r1_col3:
         with st.container(border=True):
-            st.markdown(f"""
-            <div class="chart-card-header">
-                <span class="chart-header-title">{get_icon('thermometer', size=15, color='#ef4444')} Temperature (°C)</span>
-            </div>
-            """, unsafe_allow_html=True)
-            if has_chart_data:
-                chart_sub = df_plot[['time_display', 'temperature_C']].rename(columns={'temperature_C': 'Temp (°C)'}).set_index('time_display')
-                st.line_chart(chart_sub, color=["#ef4444"], height=165, use_container_width=True)
-            else:
-                st.markdown(f"""
-                <div class="chart-empty-state sec-empty">
-                    {get_icon('thermometer', size=20, color='#94a3b8')}
-                    <div class="empty-state-title">Waiting for incoming telemetry...</div>
-                </div>
-                """, unsafe_allow_html=True)
+            st.markdown(f'<div class="chart-card-header"><span class="chart-header-title">{get_icon("thermometer", size=14, color="#ef4444")} Temperature (°C)</span></div>', unsafe_allow_html=True)
+            render_sparkline_chart(df_plot, 'temperature_C', 'Temp', '#ef4444', '°C')
 
-    # Row 2: Illuminance (Lux), Irradiance (W/m²), Energy (kWh)
+    # Row 2: Irradiance (W/m²), Power (W), Energy (kWh)
     r2_col1, r2_col2, r2_col3 = st.columns(3, gap="small")
-
     with r2_col1:
         with st.container(border=True):
-            st.markdown(f"""
-            <div class="chart-card-header">
-                <span class="chart-header-title">{get_icon('sun-dim', size=15, color='#eab308')} Illuminance (Lux)</span>
-            </div>
-            """, unsafe_allow_html=True)
-            if has_chart_data:
-                chart_sub = df_plot[['time_display', 'illuminance_lux']].rename(columns={'illuminance_lux': 'Illuminance (Lux)'}).set_index('time_display')
-                st.line_chart(chart_sub, color=["#eab308"], height=165, use_container_width=True)
-            else:
-                st.markdown(f"""
-                <div class="chart-empty-state sec-empty">
-                    {get_icon('sun-dim', size=20, color='#94a3b8')}
-                    <div class="empty-state-title">Waiting for incoming telemetry...</div>
-                </div>
-                """, unsafe_allow_html=True)
-
+            st.markdown(f'<div class="chart-card-header"><span class="chart-header-title">{get_icon("sun", size=14, color="#ea580c")} Irradiance (W/m²)</span></div>', unsafe_allow_html=True)
+            render_sparkline_chart(df_plot, 'irradiance_W_m2', 'Irradiance', '#ea580c', 'W/m²')
     with r2_col2:
         with st.container(border=True):
-            st.markdown(f"""
-            <div class="chart-card-header">
-                <span class="chart-header-title">{get_icon('zap', size=15, color='#0284c7')} Power (W)</span>
-            </div>
-            """, unsafe_allow_html=True)
-            if has_chart_data:
-                chart_sub = df_plot[['time_display', 'power_W']].rename(columns={'power_W': 'Power (W)'}).set_index('time_display')
-                st.line_chart(chart_sub, color=["#0284c7"], height=165, use_container_width=True)
-            else:
-                st.markdown(f"""
-                <div class="chart-empty-state sec-empty">
-                    {get_icon('zap', size=20, color='#94a3b8')}
-                    <div class="empty-state-title">Waiting for incoming telemetry...</div>
-                </div>
-                """, unsafe_allow_html=True)
-
+            st.markdown(f'<div class="chart-card-header"><span class="chart-header-title">{get_icon("zap", size=14, color="#d97706")} Power (W)</span></div>', unsafe_allow_html=True)
+            render_sparkline_chart(df_plot, 'power_W', 'Power', '#d97706', 'W')
     with r2_col3:
         with st.container(border=True):
-            st.markdown(f"""
-            <div class="chart-card-header">
-                <span class="chart-header-title">{get_icon('battery-charging', size=15, color='#10b981')} Energy (kWh)</span>
-            </div>
-            """, unsafe_allow_html=True)
-            if has_chart_data:
-                chart_sub = df_plot[['time_display', 'energy_kWh']].rename(columns={'energy_kWh': 'Energy (kWh)'}).set_index('time_display')
-                st.line_chart(chart_sub, color=["#10b981"], height=165, use_container_width=True)
-            else:
-                st.markdown(f"""
-                <div class="chart-empty-state sec-empty">
-                    {get_icon('battery-charging', size=20, color='#94a3b8')}
-                    <div class="empty-state-title">Waiting for incoming telemetry...</div>
-                </div>
-                """, unsafe_allow_html=True)
+            st.markdown(f'<div class="chart-card-header"><span class="chart-header-title">{get_icon("battery-charging", size=14, color="#10b981")} Energy (kWh)</span></div>', unsafe_allow_html=True)
+            render_sparkline_chart(df_plot, 'energy_kWh', 'Energy', '#10b981', 'kWh')
 
 # -----------------------------------------------------------------------------------------
-# ZONE 3 (RIGHT): SYSTEM STATUS, SOLAR INTENSITY GAUGE, RECENT EVENTS (FIXED), EXPORT
+# ZONE 3 (RIGHT): SYSTEM STATUS, GAUGE, RECENT EVENTS, EXPORT
 # -----------------------------------------------------------------------------------------
 with col_right:
-    # 1. System Status Panel: Compact rows with 11.5px typography
-    log_status_cls = "status-green" if solar_data['logging_active'] else "status-amber"
-    log_status_txt = "Active" if solar_data['logging_active'] else "Paused"
-
+    # 1. System Status Card
     st.markdown(f"""
     <div class="dashboard-card">
         <div class="card-title">{get_icon('shield-check', size=16, color='#0284c7')} SYSTEM STATUS</div>
         <div class="status-row">
-            <span class="status-label">{get_icon('shield-check', size=14, color='#0284c7')} Overall Health</span>
-            <span class="status-badge-inline status-{health_color}"><span class="status-dot {health_color}"></span> {health_status}</span>
+            <span class="status-label">{get_icon('shield-check', size=14, color='#0284c7')} Health</span>
+            <span class="status-val" style="color: {'#10b981' if health_color=='green' else ('#f59e0b' if health_color=='amber' else '#ef4444')};">● {health_status}</span>
         </div>
         <div class="status-row">
             <span class="status-label">{get_icon('wifi', size=14, color='#0284c7')} MQTT Broker</span>
-            <span class="status-badge-inline {mqtt_badge_cls}"><span class="status-dot {'green' if solar_data['mqtt_connected'] else 'red'}"></span> {mqtt_badge_txt}</span>
+            <span class="status-val" style="color: {'#10b981' if solar_data['mqtt_connected'] else '#ef4444'};">● {mqtt_badge_txt}</span>
         </div>
         <div class="status-row">
             <span class="status-label">{get_icon('database', size=14, color='#0284c7')} Data Logging</span>
-            <span class="status-badge-inline {log_status_cls}">{log_status_txt}</span>
+            <span class="status-val">Active (CSV)</span>
         </div>
         <div class="status-row">
             <span class="status-label">{get_icon('clock', size=14, color='#0284c7')} Last Packet</span>
-            <span class="status-val">{freshness_label}</span>
+            <span class="status-val">{freshness_txt}</span>
         </div>
         <div class="status-row">
-            <span class="status-label">{get_icon('refresh', size=14, color='#0284c7')} Reconnects</span>
+            <span class="status-label">{get_icon('activity', size=14, color='#0284c7')} Reconnects</span>
             <span class="status-val">{solar_data['reconnect_count']}</span>
-        </div>
-        <div class="status-row">
-            <span class="status-label">{get_icon('layers', size=14, color='#0284c7')} Total Messages</span>
-            <span class="status-val">{solar_data['msg_count']:,}</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-    # 2. Solar Radiation Intensity (Enhanced Semi-Circular SVG Gauge with Real Irradiance)
-    current_irr = solar_data['watts']
-    norm_frac = min(max(current_irr / 1000.0, 0.0), 1.0)
-    
-    if current_irr < 200.0:
-        cond_tier = "Low"
-        tier_color = "#0284c7"
-    elif current_irr <= 650.0:
-        cond_tier = "Moderate"
-        tier_color = "#d97706"
-    else:
-        cond_tier = "Strong"
-        tier_color = "#ea580c"
-
-    cx, cy, r = 100, 78, 60
-    total_arc_len = math.pi * r # ~188.5
-    active_offset = total_arc_len * (1.0 - norm_frac)
-    angle = math.pi * (1.0 - norm_frac)
-    px = cx + r * math.cos(angle)
-    py = cy - r * math.sin(angle)
-
-    gauge_svg = (
-        '<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; padding: 4px 0;">'
-        '<svg viewBox="20 10 160 82" style="width: 100%; max-width: 230px; overflow: visible;">'
-        '<defs>'
-        '<linearGradient id="solarArcGrad" x1="0%" y1="0%" x2="100%" y2="0%">'
-        '<stop offset="0%" stop-color="#38bdf8" />'
-        '<stop offset="35%" stop-color="#fbbf24" />'
-        '<stop offset="70%" stop-color="#f97316" />'
-        '<stop offset="100%" stop-color="#ea580c" />'
-        '</linearGradient>'
-        '</defs>'
-        f'<path d="M {cx - r} {cy} A {r} {r} 0 0 1 {cx + r} {cy}" fill="none" stroke="#e2e8f0" stroke-width="8.5" stroke-linecap="round" />'
-        f'<path d="M {cx - r} {cy} A {r} {r} 0 0 1 {cx + r} {cy}" fill="none" stroke="url(#solarArcGrad)" stroke-width="8.5" stroke-linecap="round" stroke-dasharray="{total_arc_len:.2f}" stroke-dashoffset="{active_offset:.2f}" />'
-        f'<circle cx="{px:.1f}" cy="{py:.1f}" r="5.5" fill="#0f172a" stroke="#ffffff" stroke-width="2.5" />'
-        f'<text x="{cx}" y="{cy - 18}" text-anchor="middle" font-size="21" font-weight="700" fill="#0f172a" letter-spacing="-0.3px">{current_irr:.1f}</text>'
-        f'<text x="{cx}" y="{cy - 4}" text-anchor="middle" font-size="11.5" font-weight="500" fill="#64748b">W/m²</text>'
-        '</svg>'
-        '<div style="display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 230px; margin-top: 2px; padding: 0 4px;">'
-        '<span style="font-size: 11px; font-weight: 500; color: #64748b;">0 W/m² (Low)</span>'
-        f'<span style="display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 600; color: {tier_color}; background: rgba(241, 245, 249, 0.95); padding: 2px 8px; border-radius: 12px; border: 1px solid rgba(226, 232, 240, 0.9);">● {cond_tier}</span>'
-        '<span style="font-size: 11px; font-weight: 500; color: #64748b;">>650 (Strong)</span>'
-        '</div>'
-        '</div>'
-    )
+    # 2. Solar Intensity Semi-Circular Gauge
+    irr_cur = solar_data['watts']
+    gauge_pct = min(1.0, max(0.0, irr_cur / 1000.0))
+    angle = -90 + (gauge_pct * 180)
+    rad = math.radians(angle)
+    nx = 100 + 65 * math.cos(rad)
+    ny = 95 + 65 * math.sin(rad)
+    tier_txt = "Strong Radiation" if irr_cur >= 600 else ("Moderate Radiation" if irr_cur >= 250 else "Low / Diffuse Light")
+    tier_color = "#10b981" if irr_cur >= 600 else ("#f59e0b" if irr_cur >= 250 else "#64748b")
 
     st.markdown(f"""
     <div class="dashboard-card">
         <div class="card-title">{get_icon('sun', size=16, color='#ea580c')} SOLAR INTENSITY GAUGE</div>
-        {gauge_svg}
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4px 0;">
+            <svg width="190" height="110" viewBox="0 0 200 120">
+                <path d="M 25 95 A 75 75 0 0 1 175 95" fill="none" stroke="#e2e8f0" stroke-width="14" stroke-linecap="round"/>
+                <path d="M 25 95 A 75 75 0 0 1 75 35" fill="none" stroke="#93c5fd" stroke-width="14" stroke-linecap="round"/>
+                <path d="M 75 35 A 75 75 0 0 1 125 35" fill="none" stroke="#fcd34d" stroke-width="14"/>
+                <path d="M 125 35 A 75 75 0 0 1 175 95" fill="none" stroke="#f97316" stroke-width="14" stroke-linecap="round"/>
+                <circle cx="100" cy="95" r="7" fill="#0f172a"/>
+                <line x1="100" y1="95" x2="{nx:.1f}" y2="{ny:.1f}" stroke="#0f172a" stroke-width="3.5" stroke-linecap="round"/>
+            </svg>
+            <div style="font-size: 16px; font-weight: 700; color: #0f172a; margin-top: -8px;">{irr_cur:.1f} <span style="font-size: 11px; font-weight: 500; color: #64748b;">W/m²</span></div>
+            <div style="font-size: 11px; font-weight: 600; color: {tier_color}; margin-top: 2px;">● {tier_txt}</div>
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
-    # 3. System Diagnostic Event Feed (Bug Fixed: Clean single-line markup without 4-space markdown indents)
-    def render_event_feed_html(events):
-        if not events:
-            return '<div style="font-size: 11.5px; color: #64748b; padding: 6px 2px;">No recent events recorded.</div>'
-        items = []
-        for ev in reversed(events[-4:]):
-            lvl = ev.get('level', 'info')
-            dot_color = '#10b981' if lvl == 'success' else ('#f59e0b' if lvl == 'warning' else ('#ef4444' if lvl == 'error' else '#0284c7'))
-            t = ev.get('time', '')
-            txt = ev.get('text', '')
-            items.append(
-                f'<div style="display: flex; justify-content: space-between; align-items: center; padding: 4.5px 0; border-bottom: 1px solid rgba(226, 232, 240, 0.6); font-size: 11px;">'
-                f'<div style="display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">'
-                f'<span style="color: {dot_color}; font-size: 12px; line-height: 1;">●</span>'
-                f'<span style="color: #1e293b; font-weight: 500;">{txt}</span>'
-                f'</div>'
-                f'<span style="color: #64748b; font-size: 10.5px; margin-left: 8px; flex-shrink: 0;">{t}</span>'
-                f'</div>'
-            )
-        return "".join(items)
-
-    events_rendered_html = render_event_feed_html(solar_data['events'])
-
+    # 3. Recent Events Feed
     st.markdown(f"""
     <div class="dashboard-card">
-        <div class="card-title">{get_icon('bell', size=16, color='#64748b')} RECENT EVENTS</div>
-        {events_rendered_html}
-    </div>
+        <div class="card-title">{get_icon('activity', size=16, color='#0284c7')} RECENT EVENTS</div>
+        <div style="max-height: 140px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;">
     """, unsafe_allow_html=True)
+    if solar_data['events']:
+        for ev in reversed(solar_data['events'][-5:]):
+            ev_color = '#10b981' if ev['level']=='success' else ('#f59e0b' if ev['level']=='warning' else '#0284c7')
+            st.markdown(f"""
+            <div style="font-size: 11px; color: #334155; display: flex; align-items: center; justify-content: space-between; background: rgba(248, 250, 252, 0.9); padding: 4px 8px; border-radius: 6px;">
+                <span><span style="color: {ev_color};">●</span> {ev['text']}</span>
+                <span style="color: #94a3b8; font-size: 10px;">{ev['time']}</span>
+            </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.markdown('<div style="font-size: 11px; color: #94a3b8; text-align: center; padding: 12px 0;">No system events recorded.</div>', unsafe_allow_html=True)
+    st.markdown("</div></div>", unsafe_allow_html=True)
 
-    # 4. Session Data Export
+    # 4. Export CSV Button
     if not df_raw.empty:
         csv_data = df_raw.to_csv(index=False).encode('utf-8')
         st.download_button(
-            label="Download Session CSV",
+            label="Download Telemetry CSV",
             data=csv_data,
-            file_name=f"solar_telemetry_{now_tehran.strftime('%Y%m%d_%H%M%S')}.csv",
+            file_name=f"solar_telemetry_{now_cur.strftime('%Y%m%d_%H%M%S')}.csv",
             mime="text/csv",
             use_container_width=True
         )
 
 # =========================================================================================
-# 12. FULL-WIDTH PERFORMANCE SNAPSHOT (5 COMPACT METRICS)
+# 12. BOTTOM SECTION: PERFORMANCE SNAPSHOT BAR & TELEMETRY AUDIT TABLE
 # =========================================================================================
-if not df_plot.empty and len(df_plot) > 0:
-    p_peak = df_plot['power_W'].max()
-    p_avg = df_plot['power_W'].mean()
-    p_volt = df_plot['voltage_V'].max()
-    p_curr = df_plot['current_mA'].max()
-    irr_avg = df_plot['irradiance_W_m2'].mean()
-else:
-    p_peak = current_power_w
-    p_avg = current_power_w
-    p_volt = solar_data['voltage']
-    p_curr = solar_data['current']
-    irr_avg = solar_data['watts']
+st.markdown("---")
 
-snapshot_title = f"PERFORMANCE SNAPSHOT · {selected_timeframe.upper()}"
+# 1. Performance Snapshot Bar (5 Metrics)
+if not df_plot.empty:
+    peak_p = df_plot['power_W'].max()
+    peak_v = df_plot['voltage_V'].max()
+    peak_c = df_plot['current_mA'].max()
+    avg_p = df_plot['power_W'].mean()
+    avg_irr = df_plot['irradiance_W_m2'].mean()
+else:
+    peak_p, peak_v, peak_c, avg_p, avg_irr = 0.0, 0.0, 0.0, 0.0, 0.0
 
 st.markdown(f"""
-<div class="dashboard-card" style="margin-top: 5px; margin-bottom: 10px; padding: 11px 14px;">
-    <div class="card-title" style="margin-bottom: 8px; font-size: 14.5px;">{get_icon('zap', size=15, color='#ea580c')} {snapshot_title}</div>
-    <div class="snapshot-grid">
-        <div class="snapshot-card">
-            <div class="snapshot-label">{get_icon('zap', size=13, color='#ea580c')} Peak Power</div>
-            <div class="snapshot-val">{format_power_w(p_peak)}<span class="snapshot-unit">W</span></div>
-        </div>
-        <div class="snapshot-card">
-            <div class="snapshot-label">{get_icon('gauge', size=13, color='#0284c7')} Peak Voltage</div>
-            <div class="snapshot-val">{p_volt:.2f}<span class="snapshot-unit">V</span></div>
-        </div>
-        <div class="snapshot-card">
-            <div class="snapshot-label">{get_icon('activity', size=13, color='#06b6d4')} Peak Current</div>
-            <div class="snapshot-val">{p_curr:.1f}<span class="snapshot-unit">mA</span></div>
-        </div>
-        <div class="snapshot-card">
-            <div class="snapshot-label">{get_icon('activity', size=13, color='#0284c7')} Avg Power</div>
-            <div class="snapshot-val">{format_power_w(p_avg)}<span class="snapshot-unit">W</span></div>
-        </div>
-        <div class="snapshot-card">
-            <div class="snapshot-label">{get_icon('sun', size=13, color='#f59e0b')} Avg Irradiance</div>
-            <div class="snapshot-val">{irr_avg:.1f}<span class="snapshot-unit">W/m²</span></div>
-        </div>
+<div class="snapshot-bar">
+    <div class="snapshot-card">
+        <div class="snapshot-lbl">{get_icon('zap', size=12, color='#d97706')} Peak Power</div>
+        <div class="snapshot-val">{format_power_w(peak_p)} W</div>
+    </div>
+    <div class="snapshot-card">
+        <div class="snapshot-lbl">{get_icon('gauge', size=12, color='#0284c7')} Peak Voltage</div>
+        <div class="snapshot-val">{peak_v:.2f} V</div>
+    </div>
+    <div class="snapshot-card">
+        <div class="snapshot-lbl">{get_icon('activity', size=12, color='#06b6d4')} Peak Current</div>
+        <div class="snapshot-val">{peak_c:.1f} mA</div>
+    </div>
+    <div class="snapshot-card">
+        <div class="snapshot-lbl">{get_icon('trending-up', size=12, color='#10b981')} Avg Power</div>
+        <div class="snapshot-val">{format_power_w(avg_p)} W</div>
+    </div>
+    <div class="snapshot-card">
+        <div class="snapshot-lbl">{get_icon('sun', size=12, color='#ea580c')} Avg Irradiance</div>
+        <div class="snapshot-val">{avg_irr:.1f} W/m²</div>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-# =========================================================================================
-# 13. TELEMETRY AUDIT LOG TABLE (FULL WIDTH BOTTOM)
-# =========================================================================================
-t_col1, t_col2 = st.columns([3, 1], gap="medium")
-with t_col1:
-    st.markdown(f"""
-    <div class="table-header-pill">
-        {get_icon('database', size=15, color='#0284c7')} RECENT TELEMETRY MEASUREMENTS
-    </div>
-    """, unsafe_allow_html=True)
+# 2. Telemetry Audit Log Table
+with st.container(border=True):
+    tbl_h1, tbl_h2 = st.columns([7, 3])
+    with tbl_h1:
+        st.markdown(f'<span style="font-size: 13.5px; font-weight: 600; color: #0f172a;">{get_icon("database", size=15, color="#0284c7")} TELEMETRY AUDIT LOG TABLE</span>', unsafe_allow_html=True)
+    with tbl_h2:
+        row_count = st.selectbox("Show Rows", options=[15, 30, 50, 100], index=0, label_visibility="collapsed")
 
-with t_col2:
-    row_count = st.selectbox("Show Rows", options=[15, 30, 50, 100], index=0, label_visibility="collapsed")
-
-# Read from live singleton records or fallback CSV
-df_table = pd.DataFrame(solar_data['log_records'])
-if df_table.empty and os.path.exists(CSV_BACKUP_FILE):
-    try:
-        df_table = pd.read_csv(CSV_BACKUP_FILE)
-    except Exception:
-        df_table = pd.DataFrame()
-
-if not df_table.empty:
-    if 'energy_kWh' not in df_table.columns:
-        if 'energy_mWh' in df_table.columns:
-            df_table['energy_kWh'] = df_table['energy_mWh'] / 1_000_000.0
-        elif 'energy_Wh' in df_table.columns:
-            df_table['energy_kWh'] = df_table['energy_Wh'] / 1000.0
-        else:
-            df_table['energy_kWh'] = 0.0
-
-    if 'power_W' not in df_table.columns:
-        if 'power_mW' in df_table.columns:
-            df_table['power_W'] = df_table['power_mW'] / 1000.0
-        else:
-            df_table['power_W'] = (df_table['voltage_V'] * df_table['current_mA']) / 1000.0
-            
-    display_cols = [
-        'time_display', 'voltage_V', 'current_mA', 'power_W', 
-        'energy_kWh', 'temperature_C', 'illuminance_lux', 'irradiance_W_m2'
-    ]
-    avail_cols = [c for c in display_cols if c in df_table.columns]
-    df_display = df_table[avail_cols].tail(row_count).iloc[::-1].copy()
-    
-    clean_col_names = {
-        'time_display': 'Time',
-        'voltage_V': 'Voltage (V)',
-        'current_mA': 'Current (mA)',
-        'power_W': 'Power (W)',
-        'energy_kWh': 'Energy (kWh)',
-        'temperature_C': 'Temp (°C)',
-        'illuminance_lux': 'Illuminance (Lux)',
-        'irradiance_W_m2': 'Irradiance (W/m²)'
-    }
-    df_display = df_display.rename(columns=clean_col_names)
-    st.dataframe(df_display, use_container_width=True, height=200)
-else:
-    st.info("Waiting for incoming telemetry packets to populate table...")
+    if not df_raw.empty:
+        df_table = df_raw.copy()
+        display_cols = ['time_display', 'voltage_V', 'current_mA', 'power_W', 'energy_kWh', 'temperature_C', 'illuminance_lux', 'irradiance_W_m2']
+        avail_cols = [c for c in display_cols if c in df_table.columns]
+        df_disp = df_table[avail_cols].tail(row_count).iloc[::-1].copy()
+        rename_map = {
+            'time_display': 'Time', 'voltage_V': 'Voltage (V)', 'current_mA': 'Current (mA)',
+            'power_W': 'Power (W)', 'energy_kWh': 'Energy (kWh)', 'temperature_C': 'Temp (°C)',
+            'illuminance_lux': 'Illuminance (Lux)', 'irradiance_W_m2': 'Irradiance (W/m²)'
+        }
+        df_disp = df_disp.rename(columns=rename_map)
+        st.dataframe(df_disp, use_container_width=True, height=210)
+    else:
+        st.info("Waiting for incoming telemetry packets to populate table...")
 
 # =========================================================================================
-# 14. LIVE UPDATE AUTO-RERUN LOOP
+# 13. LIVE UPDATE AUTO-RERUN LOOP
 # =========================================================================================
 if live_update:
     time.sleep(3.5)
