@@ -635,7 +635,7 @@ def save_point_to_csv(record_dict):
         df_new.to_csv(CSV_BACKUP_FILE, mode='a', header=False, index=False)
 
 def load_data_from_csv():
-    """Restores historical telemetry with standardized units."""
+    """Restores historical telemetry with standardized units and filters corrupted entries."""
     if os.path.exists(CSV_BACKUP_FILE):
         try:
             df = pd.read_csv(CSV_BACKUP_FILE)
@@ -650,6 +650,11 @@ def load_data_from_csv():
                         df['energy_kWh'] = df['energy_mWh'] / 1_000_000.0
                     else:
                         df['energy_kWh'] = 0.0
+                
+                # فیلتر داده‌های جابجاشده لوکس به جای دما
+                if 'temperature_C' in df.columns:
+                    df = df[df['temperature_C'] < 100.0]
+
                 return df.tail(1500).to_dict('records')
         except Exception:
             pass
@@ -820,24 +825,36 @@ def start_mqtt_client(broker: str, port: int, topic: str, fallback_host: str):
             solar_data['last_update_time'] = now_dt
             solar_data['msg_count'] += 1
 
-            # Log record
-            record = {
-                'timestamp': now_iso,
-                'time_display': now_display,
-                'voltage_V': round(solar_data['voltage'], 2),
-                'current_mA': round(solar_data['current'], 2),
-                'power_W': round(solar_data['power_w'], 4),
-                'energy_kWh': round(solar_data['total_energy_kwh'], 6),
-                'temperature_C': round(solar_data['temp'], 2),
-                'illuminance_lux': round(solar_data['lux'], 1),
-                'irradiance_W_m2': round(solar_data['watts'], 2)
-            }
-            solar_data['log_records'].append(record)
-            if len(solar_data['log_records']) > 1500:
-                solar_data['log_records'].pop(0)
+            # لاگ‌گیری تنها با گذشت حداقل 1 ثانیه از آخرین لاگ
+            should_log = False
+            if not solar_data['log_records']:
+                should_log = True
+            else:
+                try:
+                    last_log_dt = datetime.strptime(solar_data['log_records'][-1]['timestamp'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=tehran_tz)
+                    if (now_dt - last_log_dt).total_seconds() >= 1.0:
+                        should_log = True
+                except Exception:
+                    should_log = True
 
-            if solar_data['logging_active'] and solar_data['msg_count'] % 5 == 0:
-                save_point_to_csv(record)
+            if should_log:
+                record = {
+                    'timestamp': now_iso,
+                    'time_display': now_display,
+                    'voltage_V': round(solar_data['voltage'], 2),
+                    'current_mA': round(solar_data['current'], 2),
+                    'power_W': round(solar_data['power_w'], 4),
+                    'energy_kWh': round(solar_data['total_energy_kwh'], 6),
+                    'temperature_C': round(solar_data['temp'], 2),
+                    'illuminance_lux': round(solar_data['lux'], 1),
+                    'irradiance_W_m2': round(solar_data['watts'], 2)
+                }
+                solar_data['log_records'].append(record)
+                if len(solar_data['log_records']) > 1500:
+                    solar_data['log_records'].pop(0)
+
+                if solar_data['logging_active'] and solar_data['msg_count'] % 5 == 0:
+                    save_point_to_csv(record)
 
         except Exception as ex:
             add_event("warning", f"Payload processing error: {str(ex)}")
@@ -927,6 +944,8 @@ if not df_raw.empty:
     df_raw['dt'] = pd.to_datetime(df_raw['timestamp'])
     if df_raw['dt'].dt.tz is None:
         df_raw['dt'] = df_raw['dt'].dt.tz_localize(tehran_tz)
+    # مرتب‌سازی زمانی قطعی
+    df_raw = df_raw.sort_values('dt').drop_duplicates(subset=['dt']).reset_index(drop=True)
 
 active_timeframe = st.session_state['chart_timeframe']
 if df_raw.empty:
@@ -1390,11 +1409,10 @@ with col_center:
                 showlegend=False
             )
             cfg_sub = {
-                'responsive': True, 'scrollZoom': True,
-                'displayModeBar': 'hover',
-                'displaylogo': False,
-                'modeBarButtonsToRemove': ['lasso2d', 'select2d', 'toggleSpikelines', 'hoverClosestCartesian', 'hoverCompareCartesian'],
-                'toImageButtonOptions': {'format': 'png', 'filename': f'{col_name}_snapshot', 'scale': 2}
+                'responsive': True,
+                'scrollZoom': False,
+                'displayModeBar': False,
+                'displaylogo': False
             }
             st.plotly_chart(fig_sub, use_container_width=True, config=cfg_sub)
         else:
