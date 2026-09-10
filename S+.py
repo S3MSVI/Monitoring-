@@ -1209,7 +1209,7 @@ with col_left:
     st.markdown(f"""
     <div style="margin-top: 10px; margin-bottom: 5px; display: flex; align-items: center; justify-content: space-between;">
         <span style="font-size: 11.5px; font-weight: 700; color: #475569; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;">
-            {get_icon('shield-check', size=14, color='#0284c7')} سلامت فیزیکی پنل (Soiling Detection)
+            {get_icon('shield-check', size=14, color='#0284c7')} PANEL PHYSICAL HEALTH (SOILING DETECTION)
         </span>
         <span style="font-size: 11px; color: #64748b;" class="tabular-val">
             {'ΔT: ' + f'{delta_temp:+.1f}°C' if delta_temp is not None else 'ΔT: N/A'}
@@ -1218,9 +1218,9 @@ with col_left:
     """, unsafe_allow_html=True)
 
     if latest_lux > 40000 and delta_temp is not None and delta_temp > 15:
-        st.warning("⚠️ هشدار: پدیده عایقشدگی (Soiling Detected) - پنل به شدت داغ شده و تبادل حرارتی مختل است. نیاز به شستشوی سطح پنل!")
+        st.warning("⚠️ Warning: Soiling Detected — Panel is overheating with impaired thermal dissipation. Cleaning required!")
     else:
-        st.success("✅ وضعیت سطح پنل: تمیز (تبادل حرارتی نرمال)")
+        st.success("✅ Panel Surface: Clean (Thermal Dissipation Normal)")
 
     # 3. Solar Production Status Card
     if not df_raw.empty and 'dt' in df_raw.columns:
