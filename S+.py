@@ -626,20 +626,6 @@ if sun_orb_html:
 # =========================================================================================
 CSV_BACKUP_FILE = 'solar_backup.csv'
 
-# Configurable persistent logging intervals (seconds)
-PERSISTENT_LOG_INTERVAL_DAY_SEC = 300     # 5 minutes for daytime
-PERSISTENT_LOG_INTERVAL_NIGHT_SEC = 3600  # 1 hour for nighttime
-
-def is_daytime(dt=None, watts: float = 0.0, lux: float = 0.0) -> bool:
-    """Determines whether current state is daytime using astronomical elevation and illumination."""
-    try:
-        elev = calculate_solar_elevation(dt=dt)
-        if elev > 0.0:
-            return True
-    except Exception:
-        pass
-    return (watts > 5.0) or (lux > 10.0)
-
 def save_point_to_csv(record_dict):
     """Persists real-time sensor measurements to local CSV."""
     df_new = pd.DataFrame([record_dict])
@@ -679,18 +665,12 @@ def get_sensor_data():
     """Thread-safe persistent in-memory singleton data cache across all Streamlit reruns."""
     initial_records = load_data_from_csv()
     initial_energy_kwh = 0.0
-    initial_last_persisted = None
     if initial_records:
         last_rec = initial_records[-1]
         if 'energy_kWh' in last_rec:
             initial_energy_kwh = float(last_rec['energy_kWh'])
         elif 'energy_mWh' in last_rec:
             initial_energy_kwh = float(last_rec['energy_mWh']) / 1_000_000.0
-        try:
-            if 'timestamp' in last_rec and last_rec['timestamp']:
-                initial_last_persisted = datetime.strptime(str(last_rec['timestamp']), "%Y-%m-%d %H:%M:%S").replace(tzinfo=tehran_tz)
-        except Exception:
-            initial_last_persisted = None
 
     return {
         'voltage': 0.0,
@@ -702,7 +682,6 @@ def get_sensor_data():
         'total_energy_kwh': initial_energy_kwh,
         'last_energy_calc_time': None,
         'last_update_time': None,
-        'last_persisted_time': initial_last_persisted,
         'mqtt_connected': False,
         'logging_active': True,
         'reconnect_count': 0,
@@ -846,19 +825,14 @@ def start_mqtt_client(broker: str, port: int, topic: str, fallback_host: str):
             solar_data['last_update_time'] = now_dt
             solar_data['msg_count'] += 1
 
-            # In-memory live chart record throttling (1.0s gate prevents waveform staircasing)
-            should_log_ram = False
-            if not solar_data['log_records']:
-                should_log_ram = True
-            else:
-                try:
-                    last_log_dt = datetime.strptime(solar_data['log_records'][-1]['timestamp'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=tehran_tz)
-                    if (now_dt - last_log_dt).total_seconds() >= 1.0:
-                        should_log_ram = True
-                except Exception:
-                    should_log_ram = True
+            # --- منطق جدید و هوشمند ثبت لاگ ---
+            # به جای چک کردن زمان، صبر می‌کنیم تا میکروکنترلر آخرین تاپیک (watts) را بفرستد. 
+            # وقتی watts رسید، یعنی هر ۶ پارامتر در حافظه آپدیت شده‌اند و حالا کل بسته را یکجا ثبت می‌کنیم.
+            should_log = False
+            if topic_str.endswith('/watts') or payload_str.startswith('{'):
+                should_log = True
 
-            if should_log_ram:
+            if should_log:
                 record = {
                     'timestamp': now_iso,
                     'time_display': now_display,
@@ -874,31 +848,12 @@ def start_mqtt_client(broker: str, port: int, topic: str, fallback_host: str):
                 if len(solar_data['log_records']) > 1500:
                     solar_data['log_records'].pop(0)
 
-                # =========================================================================
-                # TIME-BASED PERSISTENT CSV LOGGING (Day: 5 min, Night: 1 hour)
-                # =========================================================================
-                if solar_data['logging_active']:
-                    is_day = is_daytime(now_dt, solar_data['watts'], solar_data['lux'])
-                    req_interval = PERSISTENT_LOG_INTERVAL_DAY_SEC if is_day else PERSISTENT_LOG_INTERVAL_NIGHT_SEC
-                    last_persisted = solar_data.get('last_persisted_time')
-
-                    should_persist = False
-                    if last_persisted is None:
-                        # Initial record: persist first complete valid telemetry packet
-                        should_persist = True
-                    else:
-                        elapsed_sec = (now_dt - last_persisted).total_seconds()
-                        if elapsed_sec >= req_interval:
-                            should_persist = True
-
-                    if should_persist:
-                        save_point_to_csv(record)
-                        solar_data['last_persisted_time'] = now_dt
-                        mode_lbl = "Day (5m)" if is_day else "Night (1h)"
-                        add_event("info", f"Persisted archive record to CSV [{mode_lbl}]")
+                # ذخیره در فایل CSV (هر 5 پکیج یکبار برای کاهش فشار روی هارد)
+                if solar_data['logging_active'] and len(solar_data['log_records']) % 5 == 0:
+                    save_point_to_csv(record)
 
         except Exception as ex:
-            add_event("warning", f"MQTT payload processing error: {str(ex)}")
+            add_event("warning", f"Payload processing error: {str(ex)}")
 
     client.on_connect = on_connect
     client.on_disconnect = on_disconnect
@@ -1188,11 +1143,6 @@ if st.session_state['chart_expanded']:
                 <div class="empty-state-title">Waiting for incoming telemetry packets...</div>
             </div>
             """, unsafe_allow_html=True)
-
-    if live_update:
-        time.sleep(3.5)
-        st.rerun()
-    st.stop()
 
 # =========================================================================================
 # STANDARD 3-ZONE INDUSTRIAL LAYOUT
@@ -1688,9 +1638,6 @@ with st.container(border=True):
     else:
         st.info("Waiting for incoming telemetry packets to populate table...")
 
-# =========================================================================================
-# 12. LIVE UPDATE AUTO-RERUN LOOP
-# =========================================================================================
 # =========================================================================================
 # 12. LIVE UPDATE AUTO-RERUN LOOP (اصلاح شده برای جلوگیری از خفگی مرورگر)
 # =========================================================================================
