@@ -837,6 +837,13 @@ def start_mqtt_client(broker: str, port: int, topic: str, fallback_host: str):
                 except Exception:
                     should_log = True
 
+# --- منطق جدید و هوشمند ثبت لاگ ---
+            # به جای چک کردن زمان، صبر می‌کنیم تا میکروکنترلر آخرین تاپیک (watts) را بفرستد. 
+            # وقتی watts رسید، یعنی هر ۶ پارامتر در حافظه آپدیت شده‌اند و حالا کل بسته را یکجا ثبت می‌کنیم.
+            should_log = False
+            if topic_str.endswith('/watts') or payload_str.startswith('{'):
+                should_log = True
+
             if should_log:
                 record = {
                     'timestamp': now_iso,
@@ -853,12 +860,9 @@ def start_mqtt_client(broker: str, port: int, topic: str, fallback_host: str):
                 if len(solar_data['log_records']) > 1500:
                     solar_data['log_records'].pop(0)
 
-                if solar_data['logging_active'] and solar_data['msg_count'] % 5 == 0:
+                # ذخیره در فایل CSV (هر 5 پکیج یکبار برای کاهش فشار روی هارد)
+                if solar_data['logging_active'] and len(solar_data['log_records']) % 5 == 0:
                     save_point_to_csv(record)
-
-        except Exception as ex:
-            add_event("warning", f"Payload processing error: {str(ex)}")
-
     client.on_connect = on_connect
     client.on_disconnect = on_disconnect
     client.on_message = on_message
@@ -1650,6 +1654,20 @@ with st.container(border=True):
 # =========================================================================================
 # 12. LIVE UPDATE AUTO-RERUN LOOP
 # =========================================================================================
+# =========================================================================================
+# 12. LIVE UPDATE AUTO-RERUN LOOP (اصلاح شده برای جلوگیری از خفگی مرورگر)
+# =========================================================================================
+if 'last_processed_msg' not in st.session_state:
+    st.session_state['last_processed_msg'] = 0
+
 if live_update:
-    time.sleep(3.5)
-    st.rerun()
+    # فقط در صورتی صفحه را رفرش کن که دیتای جدیدی از سنسورها آمده باشد
+    if solar_data['msg_count'] > st.session_state['last_processed_msg']:
+        st.session_state['last_processed_msg'] = solar_data['msg_count']
+        # یک مکث نیم‌ثانیه‌ای برای اینکه تمام تاپیک‌های میکروکنترلر به سرور برسند
+        time.sleep(0.5) 
+        st.rerun()
+    else:
+        # اگر دیتای جدیدی نیامده، مرورگر را درگیر نکن و 2 ثانیه منتظر بمان
+        time.sleep(2.0)
+        st.rerun()
